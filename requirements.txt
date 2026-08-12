@@ -1,0 +1,37 @@
+# Python 3.13 / Windows uyumlu sürümler.
+# Kurulum:  python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
+
+# --- Çekirdek sayısal ---
+numpy>=1.26
+scipy>=1.13
+pyyaml>=6.0
+
+# --- Raster / vektör G/Ç ---
+rasterio>=1.4          # raster okuma/yazma/reprojeksiyon (GDAL wheel gömülü)
+rioxarray>=0.17        # xarray + CRS köprüsü, zaman serisi işleme
+xarray>=2024.6
+geopandas>=1.0         # vektör veri (AOI, su kaynakları)
+shapely>=2.0
+pyproj>=3.6
+rasterstats>=0.19      # zonal statistics (örnek parsel NDVI eğrileri)
+
+# --- Sınıflandırma / doğrulama ---
+mapclassify>=2.6       # Jenks Natural Breaks
+scikit-learn>=1.5      # opsiyonel: k-means ile risk sınıfı doğrulaması
+
+# --- Veri kaynakları ---
+pystac-client>=0.8         # STAC arama (Planetary Computer)
+planetary-computer>=1.0    # asset imzalama (ücretsiz, anonim erişim yeterli)
+odc-stac>=0.3.10           # STAC -> xarray yükleme
+dask[array]>=2024.7        # parçalı (chunked) Sentinel-2 kompoziti
+requests>=2.32             # CHIRPS doğrudan HTTP indirme
+osmnx>=2.0                 # OSM su kaynakları + idari sınır
+
+# --- Görselleştirme ---
+matplotlib>=3.9
+pillow>=10
+imageio>=2.34              # NDVI animasyonu (GIF/MP4)
+
+# --- Geliştirme ---
+pytest>=8.0
+tqdm>=4.66

@@ -1,0 +1,35 @@
+# --- Ortam ---
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Veri (Git LFS kullanılmıyor: ham ve ara veri repoya girmez) ---
+data/raw/**
+data/processed/**
+data/interim/**
+# Dizinlerin kendisi hariç tutulmamalı, yoksa git içlerine inip aşağıdaki
+# istisnaları göremez.
+!data/**/
+!data/**/.gitkeep
+!data/processed/aoi.geojson
+!data/processed/grid_definition.json
+
+# --- Büyük çıktılar ---
+outputs/**/*.tif
+outputs/**/*.tiff
+outputs/**/*.mp4
+outputs/**/*.nc
+outputs/**/*.zarr/
+!outputs/**/.gitkeep
+
+# README'ye gömülecek küçük görseller repoda kalsın:
+!outputs/figures/**/*.png
+!outputs/figures/**/*.gif
+
+# --- Sistem ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

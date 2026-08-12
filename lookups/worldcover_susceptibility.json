@@ -1,0 +1,23 @@
+{
+  "_meta": {
+    "source": "ESA WorldCover v200 (2021), 10 m — Zanaga et al., 2022",
+    "description": "WorldCover sınıf kodlarının tarımsal kuraklık duyarlılık skoruna (0-1) dönüşümü. 0 = kuraklıktan en az etkilenen / en az riskli, 1 = en duyarlı.",
+    "rationale": "Skorlar iki eksene göre verildi: (a) bitki örtüsünün kök derinliği ve su tutma kapasitesi, (b) örtünün tarımsal üretim açısından kuraklığa maruziyeti. Su yüzeyleri ve yerleşim alanları tarımsal kuraklık riski açısından anlamsız olduğundan maskelenir (skor null).",
+    "review_note": "Bu skorlar Adım 9'da docs/references.md içindeki literatürle gerekçelendirilecek; nihai değerler uzman görüşüyle revize edilebilir."
+  },
+  "classes": {
+    "10": { "name": "Tree cover", "score": 0.25, "note": "Derin kök sistemi, yüksek su tutma; kuraklığa dayanıklı" },
+    "20": { "name": "Shrubland", "score": 0.55, "note": "Orta derinlikte kök, yarı kurak koşullara adapte" },
+    "30": { "name": "Grassland", "score": 0.70, "note": "Sığ kök, mevsimsel yağışa doğrudan bağımlı" },
+    "40": { "name": "Cropland", "score": 0.90, "note": "Ana ilgi sınıfı: sulamaya bağımlı, kuraklıktan doğrudan ekonomik zarar görür" },
+    "50": { "name": "Built-up", "score": null, "note": "Maskelenir — tarımsal kuraklık riski tanımsız" },
+    "60": { "name": "Bare / sparse vegetation", "score": 1.00, "note": "Örtü yok, en yüksek yüzey kuruluğu ve erozyon riski" },
+    "70": { "name": "Snow and ice", "score": null, "note": "Maskelenir — çalışma alanında beklenmiyor" },
+    "80": { "name": "Permanent water bodies", "score": null, "note": "Maskelenir" },
+    "90": { "name": "Herbaceous wetland", "score": 0.10, "note": "Sürekli doygun; kuraklık riski en düşük" },
+    "95": { "name": "Mangroves", "score": null, "note": "Maskelenir — çalışma alanında yok" },
+    "100": { "name": "Moss and lichen", "score": 0.60, "note": "Çalışma alanında marjinal" }
+  },
+  "masked_score": null,
+  "nodata_score": null
+}
