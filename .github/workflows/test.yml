@@ -7,7 +7,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  test:
+  # Asıl kapı: dış servislere hiç bağlanmaz, bu yüzden kırmızıya dönmesi
+  # her zaman gerçek bir kod hatası anlamına gelir.
+  unit:
+    name: birim testleri (ağsız)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -23,7 +26,34 @@ jobs:
           pip install -r requirements.txt
 
       - name: Testler
-        run: pytest -ra
+        run: pytest -ra -m "not network"
 
       - name: Adım 1 uçtan uca çalışıyor mu
         run: python -m scripts.step01_define_grid
+
+      - name: Alternatif senaryo da çalışıyor mu
+        run: python -m scripts.step01_define_grid --scenario flat_riskier
+
+  # Veri sağlayıcılarının sözleşmesini denetler: STAC koleksiyonlarının asset
+  # isimleri, WorldCover'ın boş `datetime` alanı, MODIS'in karışık platformu,
+  # Sentinel-2'nin CRS'i. Bunlar bizim kodumuz değişmeden de bozulabilir, o
+  # yüzden ayrı ve zamanlanmış — asıl kapıyı kırmızıya çevirmesin.
+  contract:
+    name: veri kaynağı sözleşmesi (ağ)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+
+      - name: Bağımlılıkları kur
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Ağ testleri
+        run: pytest -ra -m network

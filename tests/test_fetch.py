@@ -26,17 +26,9 @@ def grid(config):
     return build_grid(config)
 
 
-def _online() -> bool:
-    import requests
-
-    try:
-        requests.head("https://planetarycomputer.microsoft.com/api/stac/v1", timeout=10)
-        return True
-    except Exception:
-        return False
-
-
-network = pytest.mark.skipif(not _online(), reason="ağ erişimi yok")
+# Bağlantı kontrolü tests/conftest.py içinde, tembel olarak yapılır: testin
+# toplanması sırasında değil, yalnızca gerçekten çalışacağı anda.
+network = pytest.mark.network
 
 
 # --- Çevrimdışı: yardımcı fonksiyonlar ---------------------------------------

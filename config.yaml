@@ -262,15 +262,23 @@ ahp:
 
   # a[i][j] = i kriterinin j'ye göre göreli önemi (Saaty 1-9).
   #
-  # Gerekçe / literatür dayanağı (kod yorumu olarak istenmişti):
-  #  - Yağış ve NDVI'ın baskın kriterler olması: tarımsal kuraklık AHP
-  #    çalışmalarında meteorolojik girdi + bitki örtüsü tepkisi en yüksek
-  #    ağırlığı alır (Saaty 1980 ölçeği; drought-hazard MCDM uygulamaları).
-  #  - Topografik kriterlerin (eğim, bakı) en düşük ağırlıkta kalması yaygın
-  #    kabuldür: yerel modülatördürler, sürücü değil.
-  #  KAYNAK NOTU: Bu matris literatürdeki tipik sıralamayı temsil eden bir
-  #  başlangıç setidir. Nihai README'de kullanılan makalelerin künyesi
-  #  `docs/references.md` içinde tam atıfla verilecektir (Adım 9).
+  # Gerekçe ve literatür dayanağı (tam künyeler: docs/references.md):
+  #
+  #  - Yağışın baskın kriter olması: Pandey & Srivastava (2019, Remote Sensing
+  #    11(4):439) kuraklık tehlike envanterinde yağışa %44.5 ağırlık veriyor.
+  #    Buradaki 0.279 daha ılımlı; o çalışmanın sahip olduğu toprak nemi
+  #    (mikrodalga) katmanı bu projede yok, dolayısıyla NDVI daha fazla iş
+  #    yapıyor ve yağışın payı ona göre düşürüldü.
+  #  - Arazi örtüsünün 0.12-0.16 bandında kalması: Sarkar ve ark. (2024,
+  #    Sci Rep 14:25564) tarımsal kuraklık bileşeninde arazi örtüsüne 0.164,
+  #    NDVI'a 0.127 veriyor; bildirdikleri CR = %5.8.
+  #  - Topografik kriterlerin (eğim, bakı) en düşük ağırlıkta kalması: bunlar
+  #    yerel modülatördür, kuraklığın sürücüsü değil.
+  #
+  #  DÜRÜSTLÜK NOTU: Bu matris yukarıdaki literatürdeki sıralamayı temsil eden,
+  #  yazar tarafından kurulmuş bir başlangıç setidir — uzman anketiyle
+  #  oluşturulmamıştır. Akademik kullanımda bu adım gereklidir
+  #  (bkz. docs/references.md, "Henüz kapatılmamış boşluklar").
   #
   #              precip  ndvi   lst   landc  dist_w  slope  aspect
   matrix:

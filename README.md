@@ -295,4 +295,39 @@ uyuşmazlığı) kod çalışmadan anlaşılır bir hata verir.
 | CHIRPS v2.0 | Climate Hazards Center, UCSB | Açık HTTP |
 | Akarsu / göl vektörü | OpenStreetMap (osmnx) | Açık, ODbL |
 
-Künyeler: [`docs/references.md`](docs/references.md)
+Tam künyeler ve ağırlıkların literatür dayanağı:
+[`docs/references.md`](docs/references.md)
+
+## Ağırlıkların literatürle karşılaştırması
+
+| Kriter | Bu proje | Pandey & Srivastava (2019) | Sarkar ve ark. (2024)* |
+|---|---:|---:|---:|
+| Yağış | 0,279 | 0,445 | — |
+| NDVI | 0,221 | 0,050 | 0,127 |
+| LST | 0,170 | 0,158 | — |
+| Arazi örtüsü | 0,125 | — | 0,164 |
+| Toprak nemi | — | 0,252 | — |
+| Sulama yöntemi | — | — | 0,187 |
+| Ekim yoğunluğu | — | — | 0,237 |
+
+\* tarımsal kuraklık bileşeni, bildirilen CR = %5,8
+
+İki karşılaştırma da bu projenin bilinen eksiklerini gösteriyor: **toprak nemi**
+ve özellikle **sulama katmanı** yok. Sarkar ve ark. sulamaya 0,187 ağırlık
+veriyor — Gediz'de tarımın sulamaya dayalı olduğu parsel eğrilerinden açıkça
+görüldüğü için bu en önemli eksik kriter. Açık veriyle elde edilemedi ve
+[`docs/references.md`](docs/references.md) içinde kapatılmamış boşluk olarak
+kayıt altına alındı.
+
+## Sınırlılıklar — kısa liste
+
+1. **Sulama ve toprak nemi katmanı yok.** Literatürdeki karşılaştırmalarda bu
+   ikisi toplam ağırlığın üçte birine kadar çıkıyor.
+2. **Bağımsız saha doğrulaması yapılmadı.** TÜİK/DSİ/MGM verilerinin açık API'si
+   yok; mevcut doğrulama iç tutarlılık + yarı bağımsız sinyalle sınırlı.
+3. **İkili karşılaştırma matrisi uzman anketiyle kurulmadı** — literatürdeki
+   sıralamayı temsil eden bir başlangıç seti.
+4. **Ölçek uyumsuzluğu:** yağış ~5,5 km, LST 1 km katmanları 30 m grid'e
+   yeniden örnekleniyor.
+5. **NDVI kısmen döngüsel:** hem girdi kriteri hem doğrulama ekseni.
+   EVI'ye geçiş ölçülebilir bir iyileşme sağlayabilir (Jia ve ark. 2020).
