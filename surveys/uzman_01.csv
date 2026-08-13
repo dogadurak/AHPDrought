@@ -1,0 +1,54 @@
+﻿# AHP ikili karşılaştırma anketi
+# Uzman: uzman_01
+#
+# Soru: TARIMSAL KURAKLIK RİSKİNİ belirlemede A mı B mi daha etkilidir?
+# 'cevap' sütununa işaretli bir Saaty değeri yazın:
+#    1 = eşit derecede önemli
+#   +2 = A; B'den eşit ile biraz daha önemli arası
+#   +3 = A; B'den biraz daha önemli
+#   +4 = A; B'den biraz ile belirgin daha önemli arası
+#   +5 = A; B'den belirgin şekilde daha önemli
+#   +6 = A; B'den belirgin ile çok daha önemli arası
+#   +7 = A; B'den çok daha önemli
+#   +8 = A; B'den çok ile aşırı daha önemli arası
+#   +9 = A; B'den aşırı derecede daha önemli
+#   Negatif değer B'nin daha önemli olduğu anlamına gelir (ör. -5)
+#
+
+no,A_kod,A_aciklama,B_kod,B_aciklama,cevap
+1,precipitation,Kurak dönem toplam yağışı,irrigation_access,Sulama altyapısına mesafe,
+2,precipitation,Kurak dönem toplam yağışı,ndvi_dry,Kurak dönem NDVI (medyan kompozit),
+3,precipitation,Kurak dönem toplam yağışı,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),
+4,precipitation,Kurak dönem toplam yağışı,lst,Kurak dönem gündüz yüzey sıcaklığı,
+5,precipitation,Kurak dönem toplam yağışı,landcover,Arazi örtüsü kuraklık duyarlılığı,
+6,precipitation,Kurak dönem toplam yağışı,distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,
+7,precipitation,Kurak dönem toplam yağışı,slope,Eğim,
+8,precipitation,Kurak dönem toplam yağışı,aspect,Bakı (güneyliliğe dönüştürülmüş),
+9,irrigation_access,Sulama altyapısına mesafe,ndvi_dry,Kurak dönem NDVI (medyan kompozit),
+10,irrigation_access,Sulama altyapısına mesafe,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),
+11,irrigation_access,Sulama altyapısına mesafe,lst,Kurak dönem gündüz yüzey sıcaklığı,
+12,irrigation_access,Sulama altyapısına mesafe,landcover,Arazi örtüsü kuraklık duyarlılığı,
+13,irrigation_access,Sulama altyapısına mesafe,distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,
+14,irrigation_access,Sulama altyapısına mesafe,slope,Eğim,
+15,irrigation_access,Sulama altyapısına mesafe,aspect,Bakı (güneyliliğe dönüştürülmüş),
+16,ndvi_dry,Kurak dönem NDVI (medyan kompozit),soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),
+17,ndvi_dry,Kurak dönem NDVI (medyan kompozit),lst,Kurak dönem gündüz yüzey sıcaklığı,
+18,ndvi_dry,Kurak dönem NDVI (medyan kompozit),landcover,Arazi örtüsü kuraklık duyarlılığı,
+19,ndvi_dry,Kurak dönem NDVI (medyan kompozit),distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,
+20,ndvi_dry,Kurak dönem NDVI (medyan kompozit),slope,Eğim,
+21,ndvi_dry,Kurak dönem NDVI (medyan kompozit),aspect,Bakı (güneyliliğe dönüştürülmüş),
+22,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),lst,Kurak dönem gündüz yüzey sıcaklığı,
+23,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),landcover,Arazi örtüsü kuraklık duyarlılığı,
+24,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,
+25,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),slope,Eğim,
+26,soil_awc,Toprak yarayışlı su kapasitesi (0-30 cm),aspect,Bakı (güneyliliğe dönüştürülmüş),
+27,lst,Kurak dönem gündüz yüzey sıcaklığı,landcover,Arazi örtüsü kuraklık duyarlılığı,
+28,lst,Kurak dönem gündüz yüzey sıcaklığı,distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,
+29,lst,Kurak dönem gündüz yüzey sıcaklığı,slope,Eğim,
+30,lst,Kurak dönem gündüz yüzey sıcaklığı,aspect,Bakı (güneyliliğe dönüştürülmüş),
+31,landcover,Arazi örtüsü kuraklık duyarlılığı,distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,
+32,landcover,Arazi örtüsü kuraklık duyarlılığı,slope,Eğim,
+33,landcover,Arazi örtüsü kuraklık duyarlılığı,aspect,Bakı (güneyliliğe dönüştürülmüş),
+34,distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,slope,Eğim,
+35,distance_to_water,En yakın doğal yüzey suyuna Öklid mesafesi,aspect,Bakı (güneyliliğe dönüştürülmüş),
+36,slope,Eğim,aspect,Bakı (güneyliliğe dönüştürülmüş),

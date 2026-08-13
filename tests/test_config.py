@@ -34,7 +34,7 @@ def test_project_config_loads():
     config = load_config()
     assert config.crs.startswith("EPSG:")
     assert config.resolution > 0
-    assert len(config.criteria_order) == 7
+    assert len(config.criteria_order) == len(config['criteria'])
 
 
 def test_every_criterion_is_in_the_ahp_matrix():
@@ -141,7 +141,9 @@ def test_scenario_independent_criteria_share_one_file():
     steep = load_config(scenario="steep_riskier")
     flat = load_config(scenario="flat_riskier")
 
-    for name in ("precipitation", "ndvi_dry", "lst", "landcover", "distance_to_water", "aspect"):
+    for name in steep.criteria_order:
+        if name == "slope":
+            continue
         assert steep.criterion_path(name) == flat.criterion_path(name)
         assert "__" not in steep.criterion_path(name).name
 
@@ -172,7 +174,7 @@ def test_criterion_missing_from_matrix_order_raises(tmp_path, raw_config):
 def test_matrix_size_mismatch_raises(tmp_path, raw_config):
     broken = copy.deepcopy(raw_config)
     broken["ahp"]["matrix"] = [row[:-1] for row in broken["ahp"]["matrix"][:-1]]
-    with pytest.raises(ConfigError, match="7x7 olmalı"):
+    with pytest.raises(ConfigError, match=r"\d+x\d+ olmalı"):
         load_config(_write(tmp_path, broken))
 
 

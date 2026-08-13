@@ -58,10 +58,19 @@ def _minmax_percentile(data: np.ndarray, spec: dict, name: str) -> np.ndarray:
 
     Ham min/max yerine yüzdelik kullanılır: tek bir aykırı piksel (bulut
     artefaktı, veri hatası) tüm ölçeği ezmesin diye.
+
+    `log_transform: true` verilirse ölçekleme log(1+x) uzayında yapılır. Bu,
+    etkisi doğrusal değil oransal olan büyüklükler içindir: mesafede 1 km'den
+    2 km'ye çıkmak, 20 km'den 21 km'ye çıkmaktan çok daha fazla şey değiştirir.
     """
     lo_pct, hi_pct = spec.get("percentile_clip", [2, 98])
     if not 0 <= lo_pct < hi_pct <= 100:
         raise NormalizationError(f"{name}: geçersiz percentile_clip {[lo_pct, hi_pct]}")
+
+    if spec.get("log_transform"):
+        if np.nanmin(data) < 0:
+            raise NormalizationError(f"{name}: log dönüşümü negatif değerle kullanılamaz")
+        data = np.log1p(data)
 
     finite = data[np.isfinite(data)]
     lo, hi = np.percentile(finite, [lo_pct, hi_pct])

@@ -65,6 +65,52 @@ def test_percentile_clip_resists_a_single_outlier():
     assert naive[:999].max() < 0.002, "karşılaştırma: ham min-max ölçeği ezerdi"
 
 
+def test_log_transform_spreads_a_skewed_distribution():
+    """Sağa çarpık mesafe dağılımında log dönüşümü ölçeğin kullanımını artırmalı.
+
+    Gerekçe: sulama altyapısına mesafede 5 km'lik sabit tavanla alanın %68.9'u
+    tavana yapışıyordu — 0.178 ağırlıklı bir kriterin çoğu piksel için ayrım
+    üretmemesi demekti.
+    """
+    rng = np.random.default_rng(0)
+    data = rng.lognormal(mean=8.5, sigma=1.1, size=20_000).reshape(-1, 1)
+
+    linear = normalize_criterion(
+        data,
+        {"normalization": "minmax_percentile", "higher_is_riskier": True, "percentile_clip": [2, 98]},
+    )
+    logged = normalize_criterion(
+        data,
+        {"normalization": "minmax_percentile", "higher_is_riskier": True,
+         "percentile_clip": [2, 98], "log_transform": True},
+    )
+
+    # Log uzayında medyan ortaya yaklaşır; doğrusalda dibe yapışır.
+    assert np.median(linear) < 0.35
+    assert 0.35 < np.median(logged) < 0.65
+    assert logged.std() > linear.std()
+
+
+def test_log_transform_preserves_ordering():
+    """Dönüşüm monoton olmalı — sıralamayı bozarsa kriter anlamını yitirir."""
+    data = np.array([[0.0, 100.0, 1000.0, 10_000.0]])
+    out = normalize_criterion(
+        data,
+        {"normalization": "minmax_percentile", "higher_is_riskier": True,
+         "percentile_clip": [0, 100], "log_transform": True},
+    )
+    assert np.all(np.diff(out[0]) > 0)
+
+
+def test_log_transform_rejects_negative_values():
+    with pytest.raises(NormalizationError, match="negatif"):
+        normalize_criterion(
+            np.array([[-5.0, 10.0]]),
+            {"normalization": "minmax_percentile", "higher_is_riskier": True,
+             "percentile_clip": [0, 100], "log_transform": True},
+        )
+
+
 def test_capped_normalization_saturates():
     data = np.array([[0.0, 7500.0, 15000.0, 30000.0]])
     spec = {"normalization": "minmax_capped", "higher_is_riskier": True, "cap_value_m": 15000}
@@ -109,8 +155,9 @@ def test_overlay_is_a_weighted_mean():
 
 def test_overlay_output_stays_in_unit_range():
     rng = np.random.default_rng(7)
-    stack = make_stack(*[rng.random((20, 20)) for _ in range(7)])
-    weights = solve_from_config(load_config()).weights
+    config = load_config()
+    stack = make_stack(*[rng.random((20, 20)) for _ in config.criteria_order])
+    weights = solve_from_config(config).weights
 
     out = weighted_overlay(stack, weights)
     assert out.min() >= 0.0

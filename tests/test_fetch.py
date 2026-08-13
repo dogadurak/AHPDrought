@@ -161,6 +161,44 @@ def test_water_tag_groups_are_queried_separately(config):
     assert all(isinstance(g, dict) for g in groups)
 
 
+def test_water_and_irrigation_are_separate_layers(config):
+    """İki katman farklı süreçleri ölçer; birleşirlerse tek ağırlığa binerler."""
+    water = config["data_sources"]["water"]
+    irrigation = config["data_sources"]["irrigation"]
+
+    irrigation_ways = {v for g in irrigation["tag_groups"] for v in g.get("waterway", [])}
+    excluded = set(water.get("exclude_tag_values", {}).get("waterway", []))
+
+    assert irrigation_ways, "sulama katmanında waterway etiketi yok"
+    assert irrigation_ways <= excluded, (
+        f"sulama altyapısı doğal su katmanından ayıklanmıyor: {irrigation_ways - excluded}"
+    )
+
+
+def test_pipeline_tag_is_not_used_for_irrigation(config):
+    """OSM'de man_made=pipeline petrol/gaz hatları için de kullanılır."""
+    tags = {k for g in config["data_sources"]["irrigation"]["tag_groups"] for k in g}
+    assert "man_made" not in tags
+
+
+def test_soil_depths_cover_the_root_zone(config):
+    """Kök bölgesi 0-30 cm olmalı ve katmanlar boşluksuz bitişmeli."""
+    depths = config["data_sources"]["soil"]["depths"]
+    total = sum(d["thickness_cm"] for d in depths)
+    assert total == 30, f"toplam derinlik {total} cm, 30 bekleniyordu"
+
+    bounds = [tuple(int(x) for x in d["label"].replace("cm", "").split("-")) for d in depths]
+    assert bounds[0][0] == 0
+    for (_, end), (start, _) in zip(bounds, bounds[1:]):
+        assert end == start, f"derinlik katmanlarında boşluk: {end} -> {start}"
+
+
+def test_et_ratio_is_not_a_criterion(config):
+    """ET/PET bağımsız doğrulama içindir; kriter listesine sızmamalı."""
+    assert "evapotranspiration" not in config["criteria"]
+    assert not any("et" == name or "et_ratio" == name for name in config.criteria_order)
+
+
 # --- Ağ gerektiren testler ---------------------------------------------------
 
 

@@ -158,11 +158,69 @@ data_sources:
     # osmnx `features_from_bbox` etiketleri. Her grup AYRI sorgulanır: OSM'de
     # karşılığı olmayan bir etiket (ör. AOI'de landuse=reservoir yok, Demirköprü
     # natural=water olarak etiketli) tüm sorguyu düşürmemeli.
+    #
+    # DOĞAL yüzey suyu: akarsu, göl, rezervuar. Sulama altyapısı BİLEREK ayrı
+    # tutuluyor (aşağıdaki `irrigation` bloğu) — biri doğal nem ve yeraltı suyu
+    # beslenmesine yakınlığı, diğeri mühendislik eseri su iletimine erişimi
+    # ölçer. Aynı katmanda toplansalardı iki farklı süreç tek ağırlığa binerdi.
     tag_groups:
       - { waterway: ["river", "stream", "canal"] }
       - { natural: ["water"] }
       - { landuse: ["reservoir", "basin"] }
+    # Kanal/ark/drenaj bu katmandan ÇIKARILIR — onlar sulama katmanına aittir.
+    # Sorguya dahil edilip sonra ayıklanmalarının nedeni pratik: Overpass'ta
+    # `river,stream,canal` sorgusu zaten önbellekte; sırf kanalı çıkarmak için
+    # yeni bir sorgu atmak dakikalarca kota beklemesi demek. Sonuç birebir aynı.
+    exclude_tag_values:
+      waterway: ["canal", "ditch", "drain"]
     max_distance_m: 15000          # bu mesafenin ötesi doygunlaşır (normalizasyon tavanı)
+
+  irrigation:
+    provider: "osm"
+    # Sulama iletim altyapısı: kanal, ark, drenaj hattı. Gediz ovasında bu ağ
+    # büyük ölçüde Demirköprü sulama şebekesini temsil eder.
+    #
+    # SINIRLILIK: OSM'de sulama altyapısının kaydı eksiksiz değildir ve DSİ'nin
+    # resmî şebeke sınırı değildir. Bu katman gerçek sulama alanının bir
+    # VEKİLİDİR (proxy), sınırı değil. Resmî veri edinildiğinde bu kriter
+    # doğrudan onunla değiştirilmelidir.
+    #
+    # `man_made=pipeline` BİLEREK dışarıda: OSM'de bu etiket petrol ve doğalgaz
+    # boru hatları için de kullanılır, sulama katmanını kirletirdi. Sulama
+    # iletim ağının OSM'deki karşılığı `waterway=canal/ditch/drain`tir.
+    tag_groups:
+      - { waterway: ["canal", "ditch", "drain"] }
+    max_distance_m: 5000           # sulama iletimi kısa mesafede anlamlı
+
+  soil:
+    provider: "soilgrids"          # ISRIC SoilGrids WCS, kayıt/anahtar gerekmez
+    base_url: "https://maps.isric.org/mapserv"
+    # Bitkiye yarayışlı su kapasitesi (AWC) = tarla kapasitesi − solma noktası
+    #   wv0033 = 33 kPa'daki hacimsel su içeriği (tarla kapasitesi)
+    #   wv1500 = 1500 kPa'daki hacimsel su içeriği (solma noktası)
+    # Fark, bitkinin gerçekten çekebileceği su miktarıdır — kuraklık dayanımının
+    # doğrudan toprak tarafındaki karşılığı.
+    field_capacity_map: "wv0033"
+    wilting_point_map: "wv1500"
+    # Kök bölgesi 0-30 cm; katmanlar kalınlıklarıyla ağırlıklı ortalanır.
+    depths:
+      - { label: "0-5cm", thickness_cm: 5 }
+      - { label: "5-15cm", thickness_cm: 10 }
+      - { label: "15-30cm", thickness_cm: 15 }
+    scale_factor: 0.001            # ham değerler x10^-3 cm3/cm3
+    native_resolution_m: 250
+    nodata_value: 0                # 0 = veri yok (su yüzeyi, kayalık)
+
+  # Bağımsız doğrulama değişkeni (Adım 7) — KRİTER DEĞİL, girdi olarak
+  # kullanılmaz. ET/PET oranı (buharlaşma açığı) su kısıtının doğrudan
+  # ölçüsüdür ve modelin hiçbir girdisinden türemez.
+  evapotranspiration:
+    provider: "planetary_computer"
+    collection: "modis-16A3GF-061" # yıllık, 500 m, boşluk doldurulmuş
+    platform: "MOD16A3GF"          # Terra; LST'de olduğu gibi platform karışıyor
+    assets: { actual: "ET_500m", potential: "PET_500m" }
+    scale_factor: 0.1              # kg/m2/yıl = mm/yıl
+    fill_threshold: 32700          # bu değerin üstü dolgu/geçersiz
 
 # -----------------------------------------------------------------------------
 # KRİTERLER (Adım 3)
@@ -197,10 +255,36 @@ criteria:
     higher_is_riskier: true        # lookup tablosu doğrudan risk skoru verir
     normalization: "lookup"        # kategorik -> skor, ayrıca normalize edilmez
 
-  distance_to_water:
-    label: "En yakın yüzey suyuna Öklid mesafesi"
+  irrigation_access:
+    label: "Sulama altyapısına mesafe"
     unit: "m"
-    higher_is_riskier: true        # uzaklık arttıkça sulama erişimi/doğal nem azalır
+    higher_is_riskier: true        # şebekeden uzak = kuraklıkta telafi imkânı yok
+    # NEDEN LOG + YÜZDELİK, sabit tavan değil:
+    # Ölçülen dağılım (AOI, OSM kanal ağı): p10=1.2 km, p50=9.2 km, p90=25.2 km.
+    # 5 km'lik sabit tavanla alanın %68.9'u tavana yapışıyordu — 0.178 ağırlıklı
+    # bir kriterin yarıdan fazla piksel için ayrım üretmemesi demek bu.
+    # Log uzayında ölçekleme iki gerekçeyle doğru:
+    #   1. Erişim etkisi oransaldır: 1 km'den 2 km'ye çıkmak, 20'den 21'e
+    #      çıkmaktan çok daha fazla şey değiştirir.
+    #   2. OSM'de yalnızca ANA kanallar haritalı; tersiyer şebeke eksik olduğu
+    #      için mutlak mesafeler sistematik olarak fazla çıkar, ama sıralama
+    #      anlamlı kalır. Log + yüzdelik sıralamayı kullanır, mutlak değeri değil.
+    # Sonuç: tavana yapışan alan %68.9 -> %2.2.
+    normalization: "minmax_percentile"
+    log_transform: true
+    percentile_clip: [2, 98]
+
+  soil_awc:
+    label: "Toprak yarayışlı su kapasitesi (0-30 cm)"
+    unit: "cm3/cm3"
+    higher_is_riskier: false       # düşük su tutma = yüksek risk
+    normalization: "minmax_percentile"
+    percentile_clip: [2, 98]
+
+  distance_to_water:
+    label: "En yakın doğal yüzey suyuna Öklid mesafesi"
+    unit: "m"
+    higher_is_riskier: true        # uzaklık arttıkça doğal nem ve taban suyu azalır
     normalization: "minmax_capped"
     cap_value_m: 15000
 
@@ -253,7 +337,9 @@ ahp:
   # Matris satır/sütun sırası — kriter isimleri `criteria` bloğuyla eşleşmeli.
   criteria_order:
     - precipitation
+    - irrigation_access
     - ndvi_dry
+    - soil_awc
     - lst
     - landcover
     - distance_to_water
@@ -266,12 +352,21 @@ ahp:
   #
   #  - Yağışın baskın kriter olması: Pandey & Srivastava (2019, Remote Sensing
   #    11(4):439) kuraklık tehlike envanterinde yağışa %44.5 ağırlık veriyor.
-  #    Buradaki 0.279 daha ılımlı; o çalışmanın sahip olduğu toprak nemi
-  #    (mikrodalga) katmanı bu projede yok, dolayısıyla NDVI daha fazla iş
-  #    yapıyor ve yağışın payı ona göre düşürüldü.
-  #  - Arazi örtüsünün 0.12-0.16 bandında kalması: Sarkar ve ark. (2024,
-  #    Sci Rep 14:25564) tarımsal kuraklık bileşeninde arazi örtüsüne 0.164,
-  #    NDVI'a 0.127 veriyor; bildirdikleri CR = %5.8.
+  #    Buradaki 0.214 daha ılımlı — o çalışma bir toprak nemi (mikrodalga)
+  #    katmanına sahip; burada onun yerine toprak su tutma kapasitesi (0.134)
+  #    ve sulama erişimi (0.178) ayrı ayrı iş yapıyor.
+  #  - Sulama erişiminin ikinci sırada olması: Sarkar ve ark. (2024, Sci Rep
+  #    14:25564) tarımsal kuraklık bileşeninde "en çok kullanılan sulama
+  #    yöntemi"ne 0.187 ağırlık veriyor — buradaki 0.178 ile neredeyse aynı.
+  #    Gediz özelinde bu ayrıca veriyle destekleniyor: parsel NDVI eğrileri
+  #    tarımın temmuzda zirve yaptığını, yani sulamaya dayalı olduğunu
+  #    gösteriyor (outputs/figures/ndvi_parcel_curves_2024.md).
+  #  - Toprak su tutma kapasitesinin dördüncü sırada olması: Pandey &
+  #    Srivastava toprak nemine 0.252 veriyor; AWC statik bir kapasite ölçüsü
+  #    olduğu (anlık nem değil) için daha düşük tutuldu.
+  #  - Arazi örtüsü: Sarkar ve ark. 0.164 veriyor. Burada 0.084 — çünkü arazi
+  #    örtüsünün taşıdığı bilginin bir kısmı artık sulama ve toprak
+  #    kriterlerine dağılmış durumda, çift saymamak için düşürüldü.
   #  - Topografik kriterlerin (eğim, bakı) en düşük ağırlıkta kalması: bunlar
   #    yerel modülatördür, kuraklığın sürücüsü değil.
   #
@@ -280,15 +375,17 @@ ahp:
   #  oluşturulmamıştır. Akademik kullanımda bu adım gereklidir
   #  (bkz. docs/references.md, "Henüz kapatılmamış boşluklar").
   #
-  #              precip  ndvi   lst   landc  dist_w  slope  aspect
+  #          precip   irrig   ndvi    soil    lst     landc   dist_w  slope   aspect
   matrix:
-    - [1.0,     1.0,     2.0,   2.0,   3.0,   5.0,   7.0]    # precipitation
-    - [1.0,     1.0,     1.0,   2.0,   2.0,   4.0,   5.0]    # ndvi_dry
-    - [0.5,     1.0,     1.0,   1.0,   2.0,   3.0,   4.0]    # lst
-    - [0.5,     0.5,     1.0,   1.0,   1.0,   2.0,   3.0]    # landcover
-    - [0.3333,  0.5,     0.5,   1.0,   1.0,   2.0,   3.0]    # distance_to_water
-    - [0.2,     0.25,    0.3333, 0.5,  0.5,   1.0,   2.0]    # slope
-    - [0.1429,  0.2,     0.25,  0.3333, 0.3333, 0.5, 1.0]    # aspect
+    - [1.0,    1.0,    1.0,    2.0,    2.0,    3.0,    4.0,    5.0,    9.0]     # precipitation
+    - [1.0,    1.0,    1.0,    1.0,    2.0,    2.0,    3.0,    5.0,    7.0]     # irrigation_access
+    - [1.0,    1.0,    1.0,    1.0,    1.0,    2.0,    3.0,    4.0,    6.0]     # ndvi_dry
+    - [0.5,    1.0,    1.0,    1.0,    1.0,    2.0,    2.0,    3.0,    5.0]     # soil_awc
+    - [0.5,    0.5,    1.0,    1.0,    1.0,    1.0,    2.0,    3.0,    4.0]     # lst
+    - [0.3333, 0.5,    0.5,    0.5,    1.0,    1.0,    2.0,    2.0,    3.0]     # landcover
+    - [0.25,   0.3333, 0.3333, 0.5,    0.5,    0.5,    1.0,    1.0,    2.0]     # distance_to_water
+    - [0.2,    0.2,    0.25,   0.3333, 0.3333, 0.5,    1.0,    1.0,    2.0]     # slope
+    - [0.1111, 0.1429, 0.1667, 0.2,    0.25,   0.3333, 0.5,    0.5,    1.0]     # aspect
 
   consistency:
     max_cr: 0.10            # CR > 0.10 ise ValueError fırlatılır

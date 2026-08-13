@@ -21,12 +21,34 @@ Sonuç bu tek karara aşırı duyarlıysa harita savunulamaz.
 
 | Karşılaştırma | `steep_riskier` vs `flat_riskier` |
 |---|---|
-| Risk indeksi ortalama farkı | 0.0335 |
-| Risk indeksi maksimum farkı | 0.0594 |
-| Aynı sınıfta kalan piksel | %76.2 |
+| Risk indeksi ortalama farkı | 0.0238 |
+| Risk indeksi maksimum farkı | 0.0425 |
+| Aynı sınıfta kalan piksel | %78.0 |
 | En fazla 1 sınıf kayan piksel | %100.0 |
 
-## 2. Mevsimsel NDVI genliği (yarı bağımsız)
+## 2. Buharlaşma oranı ET/PET (BAĞIMSIZ)
+
+MODIS MOD16A3GF yıllık evapotranspirasyon ürününden ET/PET oranı.
+Bu, modele hiç girmemiş bir ölçümdür: ayrı bir Penman-Monteith
+modelinden üretilir ve bu projedeki hiçbir kriter (CHIRPS yağış,
+Sentinel-2 NDVI, MODIS LST, WorldCover, SoilGrids, OSM mesafeleri)
+onun girdisi değildir. Tek dolaylı bağ MOD16'nın MODIS LAI/FPAR
+kullanmasıdır, yani bitki örtüsüyle akrabalığı sıfır değildir.
+
+**Beklenti:** risk sınıfı arttıkça ET/PET AZALMALI (su kısıtı artar).
+
+| Risk sınıfı | Ortalama ET/PET | Piksel |
+|---|---|---|
+| 1 — Çok düşük | 0.2846 | 643,947 |
+| 2 — Düşük | 0.2747 | 1,216,967 |
+| 3 — Orta | 0.2595 | 1,488,104 |
+| 4 — Yüksek | 0.2366 | 1,146,883 |
+| 5 — Çok yüksek | 0.2358 | 546,684 |
+
+Risk indeksi ile ET/PET arasında Spearman ρ = **-0.3309**.
+**Sonuç:** beklenen yönde, monoton azalıyor.
+
+## 3. Mevsimsel NDVI genliği (yarı bağımsız)
 
 Genlik = ilkbahar tepe NDVI − yaz dip NDVI. Kriter olarak kullanılan
 *kurak dönem NDVI seviyesi*nden farklı bir büyüklüktür, ama aynı
@@ -36,35 +58,35 @@ sensörden türediği için kısmi döngüsellik taşır.
 
 | Risk sınıfı | Ortalama mevsimsel NDVI düşüşü | Piksel |
 |---|---|---|
-| 1 — Çok düşük | 0.0504 | 644,564 |
-| 2 — Düşük | 0.0985 | 1,296,807 |
-| 3 — Orta | 0.1730 | 1,505,126 |
-| 4 — Yüksek | 0.2579 | 1,297,035 |
-| 5 — Çok yüksek | 0.3575 | 624,052 |
+| 1 — Çok düşük | 0.0426 | 662,398 |
+| 2 — Düşük | 0.1118 | 1,249,683 |
+| 3 — Orta | 0.1742 | 1,512,299 |
+| 4 — Yüksek | 0.2505 | 1,160,508 |
+| 5 — Çok yüksek | 0.3504 | 564,624 |
 
 **Sonuç:** beklenen yönde, monoton artıyor.
 
-## 3. Katmanlı özet
+## 4. Katmanlı özet
 
 ### Arazi örtüsüne göre ortalama risk
 
 | Arazi örtüsü | Ortalama risk | Alan payı |
 |---|---|---|
-| Bare / sparse vegetation | 0.6346 | %0.6 |
-| Grassland | 0.5358 | %25.9 |
-| Cropland | 0.5358 | %26.0 |
-| Shrubland | 0.5196 | %1.4 |
-| Tree cover | 0.4283 | %43.2 |
+| Bare / sparse vegetation | 0.6185 | %0.6 |
+| Grassland | 0.5762 | %24.8 |
+| Shrubland | 0.5635 | %1.3 |
+| Cropland | 0.5314 | %24.3 |
+| Tree cover | 0.5005 | %42.2 |
 
 ### Yükseklik kuşağına göre ortalama risk
 
 | Yükseklik | Ortalama risk | Piksel |
 |---|---|---|
-| 33–128 m | 0.5491 | 1,073,608 |
-| 128–293 m | 0.5293 | 1,073,607 |
-| 293–554 m | 0.5005 | 1,073,606 |
-| 554–849 m | 0.4734 | 1,073,608 |
-| 849–2,149 m | 0.3893 | 1,073,608 |
+| 33–132 m | 0.5212 | 1,029,991 |
+| 132–302 m | 0.5445 | 1,029,995 |
+| 302–563 m | 0.5561 | 1,029,992 |
+| 563–860 m | 0.5523 | 1,029,993 |
+| 860–2,149 m | 0.4773 | 1,029,993 |
 
 ## Gerçek doğrulama için gereken
 

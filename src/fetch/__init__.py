@@ -14,19 +14,25 @@ kriter dönüşümleri Adım 3'ün işidir.
 """
 
 from .dem import fetch_dem
+from .evapotranspiration import fetch_et_ratio
 from .landcover import fetch_worldcover
 from .lst import fetch_lst
 from .precipitation import fetch_chirps
 from .sentinel2 import fetch_ndvi_dry_composite, fetch_ndvi_monthly, fetch_ndvi_timeseries
-from .water import fetch_water_features
+from .soil import fetch_soil_awc
+from .water import fetch_irrigation_features, fetch_water_features
 
 __all__ = [
     "fetch_dem",
     "fetch_worldcover",
     "fetch_lst",
     "fetch_chirps",
+    "fetch_soil_awc",
     "fetch_ndvi_monthly",
     "fetch_ndvi_dry_composite",
     "fetch_ndvi_timeseries",
     "fetch_water_features",
+    "fetch_irrigation_features",
+    # Kriter değil — Adım 7 bağımsız doğrulama girdisi.
+    "fetch_et_ratio",
 ]

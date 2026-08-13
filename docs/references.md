@@ -22,6 +22,16 @@ Projede kullanılan üç unsurun kaynağı: Saaty 1–9 ikili karşılaştırma 
 ağırlıkların baskın özvektörden türetilmesi ve rastgele tutarlılık indeksi (RI)
 tablosuyla CR ≤ 0.10 kabul eşiği. Uygulama: [`src/ahp.py`](../src/ahp.py).
 
+**Aczél, J. & Saaty, T. L. (1983).** Procedures for synthesizing ratio
+judgements. *Journal of Mathematical Psychology*, 27(1), 93–102.
+<https://doi.org/10.1016/0022-2496(83)90028-7> **[künye ✓]**
+
+Birden çok uzmanın yargılarının **geometrik ortalamayla** birleştirilmesinin
+(AIJ) kaynağı. Aritmetik ortalama AHP matrisinin karşılıklılık özelliğini
+(a_ji = 1/a_ij) bozar: 3 ve 1/3 diyen iki uzmanın ortalaması 1 olmalıyken 1.67
+çıkar. Uygulama: [`src/ahp_survey.py`](../src/ahp_survey.py), doğrulaması
+[`tests/test_ahp_survey.py`](../tests/test_ahp_survey.py).
+
 ---
 
 ## 2. Kuraklık için AHP uygulamaları — ağırlık karşılaştırması
@@ -209,26 +219,65 @@ record for monitoring extremes. *Scientific Data*, 2, 150066.
 CHIRPS v2.0 aylık global yağış, ~0.05° (~5.5 km). Bu AOI'yi yaklaşık 20×10
 hücreyle kapladığı için katman **bölgesel gradyan** taşır, yerel detay değil.
 
+**Poggio, L., de Sousa, L. M., Batjes, N. H., Heuvelink, G. B. M., Kempen, B.,
+Ribeiro, E. & Rossiter, D. (2021).** SoilGrids 2.0: producing soil information
+for the globe with quantified spatial uncertainty. *SOIL*, 7(1), 217–240.
+<https://doi.org/10.5194/soil-7-217-2021> **[künye ✓]**
+
+Toprak yarayışlı su kapasitesi `wv0033 − wv1500` (tarla kapasitesi − solma
+noktası) olarak 0–30 cm kök bölgesi için hesaplanıyor, katmanlar
+kalınlıklarıyla ağırlıklı ortalanıyor. ISRIC WCS servisi, 250 m, kayıt
+gerektirmez. Ölçülen değerler: 0.064–0.163 cm³/cm³ (ortalama 0.114).
+
+**Mu, Q., Zhao, M. & Running, S. W. (2011).** Improvements to a MODIS global
+terrestrial evapotranspiration algorithm. *Remote Sensing of Environment*,
+115(8), 1781–1800. <https://doi.org/10.1016/j.rse.2011.02.019> **[künye ✓]**
+
+MOD16 evapotranspirasyon algoritmasının kaynağı. Bu projede **kriter olarak
+değil, bağımsız doğrulama değişkeni olarak** kullanılıyor: ET/PET oranı ayrı
+bir Penman-Monteith modelinden gelir ve projedeki hiçbir kriter onun girdisi
+değildir. Tek dolaylı bağ MOD16'nın MODIS LAI/FPAR kullanmasıdır — bitki
+örtüsüyle akrabalığı sıfır değil, bu yüzden "tamamen bağımsız" denmiyor.
+Ölçülen: ET 441 mm/yıl, PET 1653 mm/yıl, oran 0.132–0.826.
+
 **OpenStreetMap** — © OpenStreetMap katılımcıları, Open Database License (ODbL).
 <https://www.openstreetmap.org/copyright>
+
+> **Sulama katmanının sınırı.** Sulama erişimi kriteri OSM'deki
+> `waterway=canal/ditch/drain` ağından (237 km) türetilir. Bu, DSİ'nin resmî
+> komuta alanı DEĞİLDİR: OSM'de yalnızca ana kanallar haritalıdır, tersiyer
+> şebeke büyük ölçüde eksiktir. Kriter bu yüzden log uzayında normalize edilir
+> — mutlak mesafeler sistematik olarak fazla çıkar, ama sıralama anlamlı kalır.
+> `man_made=pipeline` bilerek dışarıda bırakıldı: OSM'de bu etiket petrol ve
+> doğalgaz hatları için de kullanılır.
 
 ---
 
 ## 7. Henüz kapatılmamış boşluklar
 
-Aşağıdakiler bu projede **yapılmadı** ve akademik bir çalışmada kapatılması
-gerekir:
+### Kapatılanlar
 
-1. **Bağımsız saha doğrulaması.** TÜİK ilçe bazında bitkisel üretim/verim
-   istatistikleri, DSİ Demirköprü sulama şebekesi kayıtları, MGM istasyon
-   bazlı SPI/SPEI serileri. Hiçbirinin açık API'si yok; manuel indirme
-   gerekiyor. Ayrıntı: [`validation_report.md`](../outputs/reports/validation_report.md).
-2. **Sulama katmanı.** Sarkar ve ark. (2024) sulama yöntemine 0.187 ağırlık
-   veriyor; bu projede karşılığı yok. Gediz'de tarım sulamaya dayalı olduğu
-   için bu en önemli eksik kriter.
-3. **Toprak verisi.** Toprak dokusu ve derinliği, su tutma kapasitesini
-   doğrudan belirler. SoilGrids (ISRIC) açık erişimli bir aday.
-4. **İkili karşılaştırma matrisinin uzman anketiyle kurulması.** Mevcut matris
-   yukarıdaki literatürdeki tipik sıralamayı temsil eden, yazar tarafından
-   kurulmuş bir başlangıç setidir. Akademik bir çalışmada matrisin alan
-   uzmanlarına yaptırılan anketle oluşturulması beklenir.
+- ~~Sulama katmanı~~ → OSM kanal ağından vekil kriter eklendi (ağırlık 0.178).
+  **Ama vekil, resmî DSİ komuta alanı değil** — aşağıya bkz.
+- ~~Toprak verisi~~ → SoilGrids yarayışlı su kapasitesi eklendi (0.134).
+- ~~Bağımsız doğrulama~~ → MODIS ET/PET eklendi. Tam bağımsız değil (MOD16
+  MODIS LAI/FPAR kullanır) ve saha verisinin yerini tutmaz.
+- ~~Uzman anketi altyapısı~~ → [`src/ahp_survey.py`](../src/ahp_survey.py) form
+  üretir, uzman başına CR denetler, geometrik ortalamayla birleştirir.
+
+### Hâlâ açık
+
+1. **DSİ resmî sulama şebeke sınırı.** Mevcut kriter OSM'den türetilen bir
+   vekildir; OSM'de tersiyer kanallar eksiktir. Resmî komuta alanı poligonu
+   edinilirse bu kriter doğrudan onunla değiştirilmelidir — bu, projedeki
+   tek en büyük belirsizlik kaynağıdır.
+2. **Saha doğrulaması.** TÜİK ilçe bazında verim istatistikleri, MGM istasyon
+   bazlı SPI/SPEI serileri, yüksek risk sınıfından rastgele parsellerin yerinde
+   kontrolü. Hiçbirinin açık API'si yok.
+   Ayrıntı: [`validation_report.md`](../outputs/reports/validation_report.md).
+3. **Uzman anketinin fiilen yapılması.** Araç hazır, anket yapılmadı. Mevcut
+   matris yukarıdaki literatürdeki sıralamayı temsil eden, yazar tarafından
+   kurulmuş bir başlangıç setidir.
+4. **Ekim yoğunluğu / ürün deseni.** Sarkar ve ark. (2024) bu kritere 0.237 ile
+   en yüksek ağırlığı veriyor. Türkiye'de ilçe bazında TÜİK'te var, mekânsal
+   (parsel bazlı) açık veri yok.

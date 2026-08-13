@@ -22,9 +22,12 @@ from src.config import Config, load_config
 from src.fetch import (
     fetch_chirps,
     fetch_dem,
+    fetch_et_ratio,
+    fetch_irrigation_features,
     fetch_lst,
     fetch_ndvi_dry_composite,
     fetch_ndvi_timeseries,
+    fetch_soil_awc,
     fetch_water_features,
     fetch_worldcover,
 )
@@ -37,8 +40,12 @@ LAYERS: dict[str, tuple[Callable, str]] = {
     "lst": (fetch_lst, "~2 dk"),
     "precipitation": (fetch_chirps, "~5 dk (ilk sefer ~270 MB indirme)"),
     "water": (fetch_water_features, "~1 dk"),
+    "irrigation": (fetch_irrigation_features, "~1 dk"),
+    "soil": (fetch_soil_awc, "~2 dk (SoilGrids WCS, 6 katman)"),
     "ndvi-dry": (fetch_ndvi_dry_composite, "~60 dk (18 aylık kompozit)"),
     "ndvi-series": (fetch_ndvi_timeseries, "~30 dk (12 ay; 3'ü kurak dönemle ortak)"),
+    # Kriter değil — Adım 7'nin bağımsız doğrulama girdisi.
+    "et-ratio": (fetch_et_ratio, "~1 dk (doğrulama için, kriter değil)"),
 }
 
 

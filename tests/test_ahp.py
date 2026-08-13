@@ -170,17 +170,17 @@ def test_criteria_count_must_match_matrix():
 
 
 def test_project_matrix_is_consistent():
-    """config.yaml'daki gerçek 7x7 matris CR eşiğini geçmeli.
+    """config.yaml'daki gerçek matris CR eşiğini geçmeli.
 
-    Bu test projenin metodolojik kalbidir: matris değiştirildiğinde CI burada
-    kırmızıya döner.
+    Bu test projenin metodolojik kalbidir: matris değiştirildiğinde ya da
+    kriter eklendiğinde CI burada kırmızıya döner.
     """
     config = load_config()
     result = solve_from_config(config)
 
     assert result.consistency_ratio <= config["ahp"]["consistency"]["max_cr"]
     assert result.weights.sum() == pytest.approx(1.0)
-    assert len(result.criteria) == 7
+    assert len(result.criteria) == len(config.criteria_order)
 
 
 def test_project_weight_ordering_matches_intent():

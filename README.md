@@ -13,59 +13,62 @@ haritası, duyarlılık analizi ve NDVI zaman serisi görselleştirmesi.
 
 ## Sonuçlar
 
-**AHP ağırlıkları** — 7×7 ikili karşılaştırma matrisinden özvektör yöntemiyle
-türetildi, tutarlılık oranı **CR = 0.0094** (eşik 0.10):
+**AHP ağırlıkları** — 9×9 ikili karşılaştırma matrisinden özvektör yöntemiyle
+türetildi, tutarlılık oranı **CR = 0.0093** (eşik 0.10):
 
-| Kriter | Ağırlık | Kaynak |
-|---|---:|---|
-| Kurak dönem yağışı | 0.279 | CHIRPS v2.0 (~5,5 km) |
-| Kurak dönem NDVI | 0.221 | Sentinel-2 L2A (10 m) |
-| Yüzey sıcaklığı (LST) | 0.170 | MODIS MYD11A2 (1 km) |
-| Arazi örtüsü duyarlılığı | 0.125 | ESA WorldCover 2021 (10 m) |
-| Su kaynağına mesafe | 0.107 | OpenStreetMap |
-| Eğim | 0.059 | Copernicus DEM GLO-30 |
-| Bakı (güneylilik) | 0.038 | Copernicus DEM GLO-30 |
+| Kriter | Ağırlık | Efektif katkı | Kaynak |
+|---|---:|---:|---|
+| Kurak dönem yağışı | 0,213 | %20,3 | CHIRPS v2.0 (~5,5 km) |
+| Sulama altyapısına mesafe | 0,178 | %16,0 | OpenStreetMap kanal ağı |
+| Kurak dönem NDVI | 0,158 | %20,9 | Sentinel-2 L2A (10 m) |
+| Toprak yarayışlı su kapasitesi | 0,134 | %12,2 | SoilGrids 2.0 (250 m) |
+| Yüzey sıcaklığı (LST) | 0,112 | %11,4 | MODIS MYD11A2 (1 km) |
+| Arazi örtüsü duyarlılığı | 0,084 | %8,9 | ESA WorldCover 2021 (10 m) |
+| Doğal yüzey suyuna mesafe | 0,052 | %2,6 | OpenStreetMap |
+| Eğim | 0,043 | %4,6 | Copernicus DEM GLO-30 |
+| Bakı (güneylilik) | 0,025 | %3,1 | Copernicus DEM GLO-30 |
+
+**Efektif katkı**, kriterin ağırlıkla çarpılmış değerlerinin standart sapma
+payıdır. AHP ağırlığı kriterin ölçeğinin tamamını kullandığı varsayımıyla
+anlam taşır; kullanmıyorsa nominal ağırlığı kadar ayrım üretmez. Burada
+`distance_to_water` bu durumda: 728 km'lik akarsu ağı sayesinde alanın %90'ı
+suya yakın, skorlar 0–0,74 bandına sıkışıyor.
 
 **Risk sınıfları** (Jenks Natural Breaks):
 
 | Sınıf | Alan | Pay |
 |---|---:|---:|
-| Çok düşük | 580 km² | %12,0 |
-| Düşük | 1.167 km² | %24,2 |
-| Orta | 1.355 km² | %28,0 |
-| Yüksek | 1.168 km² | %24,2 |
-| Çok yüksek | 562 km² | %11,6 |
+| Çok düşük | 596 km² | %12,9 |
+| Düşük | 1.125 km² | %24,3 |
+| Orta | 1.361 km² | %29,4 |
+| Yüksek | 1.045 km² | %22,5 |
+| Çok yüksek | 508 km² | %11,0 |
 
-Bağımsız k-means sınıflandırmasıyla **%95,0 uyum** — sınıflar yöntem seçimine
+Bağımsız k-means sınıflandırmasıyla **%97,8 uyum** — sınıflar yöntem seçimine
 değil verinin kendi yapısına dayanıyor.
-
-### Nominal ağırlık ≠ efektif katkı
-
-AHP ağırlığı, kriterin ölçeğinin tamamını kullandığı varsayımıyla anlam taşır.
-Gerçekte:
-
-| Kriter | Ağırlık | Kullanılan aralık | Efektif katkı |
-|---|---:|---|---:|
-| precipitation | 0,279 | 0,00–1,00 | %31,4 |
-| ndvi_dry | 0,221 | 0,00–1,00 | %22,6 |
-| lst | 0,170 | 0,00–1,00 | %16,8 |
-| landcover | 0,125 | 0,10–1,00 | %13,0 |
-| slope | 0,059 | 0,00–1,00 | %6,3 |
-| **distance_to_water** | **0,107** | **0,00–0,80** | **%5,4** |
-| aspect | 0,038 | 0,00–1,00 | %4,5 |
-
-Su mesafesi kriteri nominal ağırlığının yarısı kadar ayrım üretiyor: 750 km'lik
-akarsu ağı sayesinde alanın %90'ı suya 5,6 km'den yakın, dolayısıyla skorlar
-0–0,37 bandına sıkışıyor. Bu havzanın gerçeği, bir hata değil — ama ağırlık
-tablosuna bakıp "su erişimi haritanın onda birini belirliyor" demek yanlış
-olurdu.
 
 ### Duyarlılık analizi
 
 Her ağırlık ±%10 değiştirildiğinde 5 sınıflı haritada aynı sınıfta kalan piksel
-oranı **en kötü %90,7** (yağış +%10), en iyi %99,0 (bakı). Spearman sıra
-korelasyonu hiçbir senaryoda 0,994'ün altına düşmüyor. Harita ağırlık
-seçimlerine karşı dayanıklı.
+oranı **en kötü %92,4** (yağış −%10), en iyi %99,2 (bakı). Spearman sıra
+korelasyonu hiçbir senaryoda 0,996'nın altına düşmüyor.
+
+### Sulamanın eklenmesi haritayı nasıl değiştirdi
+
+Sulama kriterinin eklenmesi sonucu kozmetik olarak değil **fiziksel olarak**
+değiştirdi:
+
+| | 7 kriter | 9 kriter |
+|---|---:|---:|
+| Tarım alanının ortalama riski | 0,536 | 0,531 |
+| Meranın ortalama riski | 0,536 | 0,576 |
+| En riskli yükseklik kuşağı | 33–128 m (ova) | 302–563 m (etek) |
+
+Önceden tarım ve mera **aynı** riskte çıkıyordu ve en riskli yer ova tabanıydı.
+Sulama eklenince tarım meranın altına indi ve risk zirvesi ovadan yamaç eteğine
+kaydı. Sebep gerçek: Gediz ovası sıcak ve kurak ama **sulanıyor**; yamaç etekleri
+hem kurak hem sulama şebekesi dışında. Bu, modelin havzanın işleyişini
+yakaladığının işareti.
 
 ---
 
@@ -98,34 +101,51 @@ Sayısal tablo: [`outputs/figures/ndvi_parcel_curves_2024.md`](outputs/figures/n
 
 ## Doğrulama
 
-Tam bağımsız doğrulama saha verisi gerektirir (TÜİK verim istatistikleri, DSİ
-sulama kayıtları, MGM kuraklık indeksi) — bu kaynakların açık API'si yok. Bu
-yüzden [`validation_report.md`](outputs/reports/validation_report.md) üç
-seviyeli ve sınırlarını açıkça bildiren bir doğrulama sunuyor:
+[`validation_report.md`](outputs/reports/validation_report.md) dört seviyeli ve
+her seviyenin kanıt değerini açıkça bildiriyor:
 
 **1. Senaryo dayanıklılığı** — eğimin risk yönü literatürde tartışmalı olduğu
-için iki senaryo da üretiliyor. Sonuç: piksellerin **%76,2'si aynı sınıfta**,
+için iki senaryo da üretiliyor. Sonuç: piksellerin **%78,0'i aynı sınıfta**,
 **%100'ü en fazla 1 sınıf** kayıyor. Tartışmalı karar sonucu değiştiriyor ama
 altüst etmiyor.
 
-**2. Mevsimsel NDVI genliği (yarı bağımsız)** — ilkbahar tepe NDVI ile yaz dip
-NDVI arasındaki fark, kriter olarak kullanılan *NDVI seviyesinden* farklı bir
-büyüklük. Beklenti: risk sınıfı arttıkça genlik artmalı.
+**2. Buharlaşma oranı ET/PET — BAĞIMSIZ.** MODIS MOD16A3GF yıllık
+evapotranspirasyon ürününden. **Modele hiç girmemiş** bir ölçüm: ayrı bir
+Penman-Monteith modelinden üretiliyor ve projedeki hiçbir kriter onun girdisi
+değil. Beklenti: risk arttıkça ET/PET azalmalı.
 
-| Risk sınıfı | Ortalama mevsimsel NDVI düşüşü |
+| Risk sınıfı | Ortalama ET/PET |
 |---|---:|
-| Çok düşük | 0,050 |
-| Düşük | 0,099 |
-| Orta | 0,173 |
-| Yüksek | 0,258 |
-| Çok yüksek | 0,358 |
+| Çok düşük | 0,285 |
+| Düşük | 0,275 |
+| Orta | 0,260 |
+| Yüksek | 0,237 |
+| Çok yüksek | 0,236 |
 
-Monoton artıyor — model, bitki örtüsünün yaz boyunca ne kadar kaybedeceğini
-doğru sıralıyor. (Aynı sensörden türediği için kısmi döngüsellik taşır.)
+Monoton azalıyor; risk indeksiyle Spearman ρ = **−0,331**. Korelasyonun orta
+şiddette olması beklenen bir sonuç — 9 kriterli bir risk indeksinin tek bir
+buharlaşma oranını birebir öngörmesi zaten beklenmezdi. Asıl anlamlı olan sınıf
+sıralamasının monoton çıkması. **Dürüstlük notu:** 4. ve 5. sınıf arasındaki
+fark (0,237 → 0,236) neredeyse yok; model en riskli iki sınıfı bu eksende
+ayıramıyor. Ayrıca MOD16 MODIS LAI/FPAR kullandığı için bitki örtüsüyle
+akrabalığı sıfır değil — "tamamen bağımsız" denemez.
 
-**3. Katmanlı özet** — arazi örtüsüne göre risk: çıplak toprak (0,635) > mera =
-tarım (0,536) > çalılık (0,520) > orman (0,428). Yüksekliğe göre: 33–128 m
-kuşağı 0,549, 849–2149 m kuşağı 0,389. İkisi de beklenen yönde.
+**3. Mevsimsel NDVI genliği (yarı bağımsız)** — ilkbahar tepe ile yaz dip NDVI
+farkı: 0,043 → 0,112 → 0,174 → 0,251 → 0,350. Monoton artıyor. Kriter olarak
+kullanılan *NDVI seviyesinden* farklı bir büyüklük ama aynı sensörden türediği
+için kanıt değeri (2)'ninkinden düşük.
+
+**4. Katmanlı özet** — arazi örtüsüne göre risk: çıplak toprak (0,619) > mera
+(0,576) > çalılık (0,564) > **tarım (0,531)** > orman (0,501). Tarımın meranın
+altına inmesi sulama kriterinin eseri ve doğru.
+
+### Hâlâ eksik olan
+
+Saha verisiyle doğrulama yapılmadı: TÜİK ilçe bazında verim istatistikleri, DSİ
+Demirköprü sulama şebekesinin resmî sınırı, MGM istasyon bazlı SPI/SPEI. Bu
+kaynakların açık API'si yok, manuel indirme gerekiyor. Özellikle DSİ şebeke
+sınırı önemli: mevcut sulama kriteri OSM'deki kanal ağından türetilen bir
+**vekildir**, resmî komuta alanı değil.
 
 ---
 
@@ -198,7 +218,23 @@ küme başlangıçlarını global numpy RNG'sinden çekiyor; tohumlanmadığı i
 veriyle iki çalıştırma farklı sınıf sınırları veriyordu (~0,009 indeks birimi —
 sınıf sınırlarını kaydırmaya yeter).
 
-**6. PROJ çakışması.** Geliştirme makinesindeki PostgreSQL/PostGIS kurulumu
+**6. Sulama kriteri sabit tavanla tavana yapışıyordu.** İlk denemede 5 km'lik
+sabit mesafe tavanı kullanıldı. Ölçülen dağılım (p10 = 1,2 km, p50 = 9,2 km,
+p90 = 25,2 km) alanın **%68,9'unun tavana yapıştığını** gösterdi — 0,178
+ağırlıklı bir kriterin çoğu piksel için ayrım üretmemesi demekti. Log uzayında
+yüzdelik normalizasyona geçildi (tavana yapışan alan %2,2), efektif katkı
+%16,0'a çıktı. Bu değişikliğin gerekçesi statistiksel değil fiziksel: erişim
+etkisi oransaldır ve OSM'de yalnızca ana kanallar haritalı olduğu için mutlak
+mesafeler güvenilmez, sıralama güvenilirdir.
+
+**7. Etiket grupları ağ hatasına dayanıklı değildi.** Grupları ayrı sorgulamanın
+amacı dayanıklılıktı, ama yalnızca "sonuç yok" hatası yakalanıyordu; Overpass
+zaman aşımı ilk grup başarılı olsa bile tüm katmanı düşürüyordu. Şimdi ağ hatası
+ile boş sonuç ayrı ele alınıyor, birden çok Overpass aynası deneniyor ve
+**kısmi bir ağdan mesafe raster'ı üretilmesine izin verilmiyor** — eksik ağdan
+hesaplanan mesafe sessizce yanlış olurdu.
+
+**8. PROJ çakışması.** Geliştirme makinesindeki PostgreSQL/PostGIS kurulumu
 `PROJ_LIB` ve `GDAL_DATA` değişkenlerini sistem genelinde kendi eski PROJ
 veritabanına ayarlamış; rasterio hiçbir EPSG kodunu çözemiyordu.
 [`src/_geoenv.py`](src/_geoenv.py) içe aktarma anında sanal ortamın gömülü PROJ
@@ -302,32 +338,52 @@ Tam künyeler ve ağırlıkların literatür dayanağı:
 
 | Kriter | Bu proje | Pandey & Srivastava (2019) | Sarkar ve ark. (2024)* |
 |---|---:|---:|---:|
-| Yağış | 0,279 | 0,445 | — |
-| NDVI | 0,221 | 0,050 | 0,127 |
-| LST | 0,170 | 0,158 | — |
-| Arazi örtüsü | 0,125 | — | 0,164 |
-| Toprak nemi | — | 0,252 | — |
-| Sulama yöntemi | — | — | 0,187 |
+| Yağış | 0,213 | 0,445 | — |
+| **Sulama erişimi** | **0,178** | — | **0,187** |
+| NDVI | 0,158 | 0,050 | 0,127 |
+| **Toprak su kapasitesi** | **0,134** | 0,252 (toprak nemi) | — |
+| LST | 0,112 | 0,158 | — |
+| Arazi örtüsü | 0,084 | — | 0,164 |
 | Ekim yoğunluğu | — | — | 0,237 |
 
 \* tarımsal kuraklık bileşeni, bildirilen CR = %5,8
 
-İki karşılaştırma da bu projenin bilinen eksiklerini gösteriyor: **toprak nemi**
-ve özellikle **sulama katmanı** yok. Sarkar ve ark. sulamaya 0,187 ağırlık
-veriyor — Gediz'de tarımın sulamaya dayalı olduğu parsel eğrilerinden açıkça
-görüldüğü için bu en önemli eksik kriter. Açık veriyle elde edilemedi ve
-[`docs/references.md`](docs/references.md) içinde kapatılmamış boşluk olarak
-kayıt altına alındı.
+Sulama erişimi ağırlığı (0,178), Sarkar ve ark.'nın bildirdiği 0,187 ile
+neredeyse aynı — matris literatüre bakılarak kurulduğu için bu bir doğrulama
+değil, tutarlılık işareti.
+
+## Grup AHP anket aracı
+
+Mevcut matris **yazar tarafından**, literatürdeki sıralamaya dayanarak kurulmuş
+bir başlangıç setidir. Akademik kullanımda uzman anketiyle kurulması beklenir.
+Bunun altyapısı hazır:
+
+```bash
+python -m scripts.ahp_survey template --out surveys --experts 5
+# uzmanlar formları doldurur (9 kriter -> 36 ikili karşılaştırma)
+python -m scripts.ahp_survey aggregate surveys/*.csv
+```
+
+Araç, uzman başına CR hesaplar, eşiği aşanları **rapora yazarak** dışlar,
+kalanları **geometrik ortalamayla** birleştirir (Aczél & Saaty 1983 — aritmetik
+ortalama karşılıklılığı bozar: 3 ve 1/3 diyen iki uzmanın ortalaması 1 olmalı,
+1,67 değil) ve `config.yaml`'a yapıştırılabilir bir matris üretir.
+
+**Anketin kendisi insan işidir** — araç uzman görüşünün yerine geçmez.
 
 ## Sınırlılıklar — kısa liste
 
-1. **Sulama ve toprak nemi katmanı yok.** Literatürdeki karşılaştırmalarda bu
-   ikisi toplam ağırlığın üçte birine kadar çıkıyor.
-2. **Bağımsız saha doğrulaması yapılmadı.** TÜİK/DSİ/MGM verilerinin açık API'si
-   yok; mevcut doğrulama iç tutarlılık + yarı bağımsız sinyalle sınırlı.
-3. **İkili karşılaştırma matrisi uzman anketiyle kurulmadı** — literatürdeki
-   sıralamayı temsil eden bir başlangıç seti.
-4. **Ölçek uyumsuzluğu:** yağış ~5,5 km, LST 1 km katmanları 30 m grid'e
-   yeniden örnekleniyor.
+1. **Sulama katmanı bir vekildir.** OSM'deki kanal ağından (237 km) türetiliyor;
+   DSİ'nin resmî komuta alanı değil. OSM'de yalnızca ana kanallar haritalı,
+   tersiyer şebeke eksik. Resmî veri edinildiğinde bu kriter doğrudan onunla
+   değiştirilmeli.
+2. **İkili karşılaştırma matrisi uzman anketiyle kurulmadı.** Araç hazır, anket
+   yapılmadı.
+3. **Saha verisiyle doğrulama yok.** TÜİK/DSİ/MGM'nin açık API'si yok.
+4. **Ölçek uyumsuzluğu:** yağış ~5,5 km, LST 1 km, toprak 250 m katmanları
+   30 m grid'e yeniden örnekleniyor.
 5. **NDVI kısmen döngüsel:** hem girdi kriteri hem doğrulama ekseni.
    EVI'ye geçiş ölçülebilir bir iyileşme sağlayabilir (Jia ve ark. 2020).
+6. **Toprak verisinde %5,6 boşluk** var (SoilGrids, su yüzeyi ve kayalık).
+   Maske yayılımı nedeniyle bu pikseller sonuçta da tanımsız kalıyor —
+   maskeli alan toplam %6,8.

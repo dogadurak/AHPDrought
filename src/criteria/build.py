@@ -104,18 +104,42 @@ def _landcover(config: Config, grid: TargetGrid) -> np.ndarray:
 
 
 def _distance_to_water(config: Config, grid: TargetGrid) -> np.ndarray:
+    return _distance_from_vector(
+        config, grid,
+        source="water.gpkg",
+        output="distance_to_water.tif",
+        description="En yakın doğal yüzey suyuna Öklid mesafesi (m)",
+    )
+
+
+def _irrigation_access(config: Config, grid: TargetGrid) -> np.ndarray:
+    return _distance_from_vector(
+        config, grid,
+        source="irrigation.gpkg",
+        output="distance_to_irrigation.tif",
+        description="En yakın sulama altyapısına Öklid mesafesi (m)",
+    )
+
+
+def _distance_from_vector(
+    config: Config, grid: TargetGrid, *, source: str, output: str, description: str
+) -> np.ndarray:
     import geopandas as gpd
 
-    path = interim_path(config, "water.gpkg")
+    path = interim_path(config, source)
     if not path.exists():
-        raise FileNotFoundError("water.gpkg bulunamadı. Önce Adım 2'yi çalıştırın.")
+        raise FileNotFoundError(f"{source} bulunamadı. Önce Adım 2'yi çalıştırın.")
 
     distance = build_distance_raster(gpd.read_file(path), grid)
     write_raster(
-        distance, grid, interim_path(config, "distance_to_water.tif"),
-        nodata=config.nodata, description="En yakın yüzey suyuna Öklid mesafesi (m)",
+        distance, grid, interim_path(config, output),
+        nodata=config.nodata, description=description,
     )
     return distance.astype("float64")
+
+
+def _soil_awc(config: Config, grid: TargetGrid) -> np.ndarray:
+    return _read_interim(config, grid, "soil_awc.tif")
 
 
 def _slope(config: Config, grid: TargetGrid) -> np.ndarray:
@@ -162,7 +186,9 @@ def _dem_filled(config: Config, grid: TargetGrid) -> np.ndarray:
 
 _BUILDERS = {
     "precipitation": _precipitation,
+    "irrigation_access": _irrigation_access,
     "ndvi_dry": _ndvi_dry,
+    "soil_awc": _soil_awc,
     "lst": _lst,
     "landcover": _landcover,
     "distance_to_water": _distance_to_water,

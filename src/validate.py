@@ -11,14 +11,21 @@ modül üç seviyeli, sınırlarını açıkça bildiren bir doğrulama yapar:
      değişiyor? Sonuç bu tek tartışmalı karara aşırı bağımlıysa savunulamaz.
    - Ağırlık duyarlılığı: Adım 4'teki ±%10 analizi.
 
-2. YARI BAĞIMSIZ SİNYAL
-   - Mevsimsel NDVI genliği (ilkbahar tepe - yaz dip). Bu, kriter olarak
-     kullanılan "kurak dönem NDVI SEVİYESİ"nden farklı bir büyüklüktür: seviye
-     ne kadar yeşil olduğunu, genlik ise yaz boyunca ne kadar kaybettiğini
-     ölçer. Yine de aynı sensörden türediği için kısmi döngüsellik vardır ve
-     bu, sonucun kanıt değerini sınırlar.
+2. BAĞIMSIZ SİNYAL — MODIS ET/PET buharlaşma oranı
+   - Gerçekleşen / potansiyel evapotranspirasyon. Ayrı bir Penman-Monteith
+     modelinden (MOD16) üretilir; bu projedeki hiçbir kriter onun girdisi
+     DEĞİLDİR. Beklenti: risk arttıkça ET/PET azalmalı.
+   - Tek dolaylı bağ: MOD16 MODIS LAI/FPAR kullanır, yani bitki örtüsüyle
+     akrabalığı sıfır değildir. Bu, sonucu geçersiz kılmaz ama "tamamen
+     bağımsız" demeyi de engeller.
 
-3. KATMANLI ÖZET
+3. YARI BAĞIMSIZ SİNYAL — mevsimsel NDVI genliği
+   - İlkbahar tepe − yaz dip. Kriter olarak kullanılan "NDVI SEVİYESİ"nden
+     farklı bir büyüklüktür: seviye ne kadar yeşil olduğunu, genlik ise yaz
+     boyunca ne kadar kaybettiğini ölçer. Aynı sensörden türediği için kısmi
+     döngüsellik vardır ve kanıt değeri (2)'ninkinden düşüktür.
+
+4. KATMANLI ÖZET
    - Arazi örtüsü ve yükseklik kuşaklarına göre risk dağılımı. Beklenen yönde
      çıkmazsa (ör. ormanın tarımdan riskli görünmesi) model hatalıdır.
 """
@@ -110,13 +117,65 @@ def seasonal_amplitude(config: Config, grid: TargetGrid) -> np.ndarray | None:
 
 def amplitude_by_class(classes: np.ndarray, amplitude: np.ndarray, n_classes: int) -> list[tuple[int, float, int]]:
     """Her risk sınıfı için ortalama mevsimsel NDVI genliği."""
+    return _mean_by_class(classes, amplitude, n_classes)
+
+
+# --- 2b. BAĞIMSIZ sinyal: MODIS ET/PET buharlaşma oranı ---------------------
+
+
+def et_ratio(config: Config, grid: TargetGrid) -> np.ndarray | None:
+    """Modelin hiçbir girdisinden türemeyen su kısıtı ölçüsü.
+
+    ET/PET = gerçekleşen / potansiyel evapotranspirasyon. 1'e yakın değer
+    bitkinin atmosferik talebi karşılayabildiğini, sıfıra yakın değer su
+    kısıtını gösterir.
+
+    Bu, mevsimsel NDVI genliğinden daha güçlü bir doğrulamadır: NDVI genliği
+    kriterle aynı sensörden gelirken, MOD16 ayrı bir Penman-Monteith modelidir
+    ve bu projedeki hiçbir kriter onun girdisi değildir. (Tek dolaylı bağ:
+    MOD16 MODIS LAI/FPAR kullanır, yani bitki örtüsüyle akrabalığı sıfır
+    değildir.)
+    """
+    path = interim_path(config, "et_pet_ratio.tif")
+    if not path.exists():
+        return None
+    return _masked(path, grid, config)
+
+
+def et_ratio_by_class(classes: np.ndarray, ratio: np.ndarray, n_classes: int) -> list[tuple[int, float, int]]:
+    """Her risk sınıfı için ortalama ET/PET oranı."""
+    return _mean_by_class(classes, ratio, n_classes)
+
+
+def _mean_by_class(classes: np.ndarray, values: np.ndarray, n_classes: int) -> list[tuple[int, float, int]]:
     rows = []
     for code in range(1, n_classes + 1):
-        selection = (classes == code) & np.isfinite(amplitude)
+        selection = (classes == code) & np.isfinite(values)
         if selection.sum() == 0:
             continue
-        rows.append((code, float(np.nanmean(amplitude[selection])), int(selection.sum())))
+        rows.append((code, float(np.nanmean(values[selection])), int(selection.sum())))
     return rows
+
+
+def rank_correlation(a: np.ndarray, b: np.ndarray, *, sample_size: int = 200_000, seed: int = 0) -> float:
+    """İki katman arasındaki Spearman sıra korelasyonu (ortak geçerli pikseller)."""
+    from scipy.stats import rankdata
+
+    valid = np.isfinite(a) & np.isfinite(b)
+    if valid.sum() < 100:
+        return float("nan")
+
+    x, y = a[valid], b[valid]
+    rng = np.random.default_rng(seed)
+    if x.size > sample_size:
+        idx = rng.choice(x.size, sample_size, replace=False)
+        x, y = x[idx], y[idx]
+
+    rx, ry = rankdata(x), rankdata(y)
+    rx = rx - rx.mean()
+    ry = ry - ry.mean()
+    denominator = np.sqrt((rx**2).sum() * (ry**2).sum())
+    return float((rx * ry).sum() / denominator) if denominator else float("nan")
 
 
 # --- 3. Katmanlı özet --------------------------------------------------------
@@ -201,7 +260,45 @@ def write_validation_report(
         "",
     ]
 
-    parts += ["## 2. Mevsimsel NDVI genliği (yarı bağımsız)", ""]
+    parts += [
+        "## 2. Buharlaşma oranı ET/PET (BAĞIMSIZ)",
+        "",
+        "MODIS MOD16A3GF yıllık evapotranspirasyon ürününden ET/PET oranı.",
+        "Bu, modele hiç girmemiş bir ölçümdür: ayrı bir Penman-Monteith",
+        "modelinden üretilir ve bu projedeki hiçbir kriter (CHIRPS yağış,",
+        "Sentinel-2 NDVI, MODIS LST, WorldCover, SoilGrids, OSM mesafeleri)",
+        "onun girdisi değildir. Tek dolaylı bağ MOD16'nın MODIS LAI/FPAR",
+        "kullanmasıdır, yani bitki örtüsüyle akrabalığı sıfır değildir.",
+        "",
+        "**Beklenti:** risk sınıfı arttıkça ET/PET AZALMALI (su kısıtı artar).",
+        "",
+    ]
+    ratio = et_ratio(config, grid)
+    if ratio is None:
+        parts += [
+            "ET/PET katmanı üretilmemiş — bu kontrol atlandı. Üretmek için:",
+            "`python -m scripts.step02_fetch_data --only et-ratio`",
+            "",
+        ]
+    else:
+        rows = et_ratio_by_class(classes, ratio, n_classes)
+        parts += ["| Risk sınıfı | Ortalama ET/PET | Piksel |", "|---|---|---|"]
+        for code, mean_ratio, count in rows:
+            parts.append(f"| {code} — {labels[code]} | {mean_ratio:.4f} | {count:,} |")
+
+        rho = rank_correlation(risk, ratio)
+        parts += ["", f"Risk indeksi ile ET/PET arasında Spearman ρ = **{rho:.4f}**."]
+        if len(rows) >= 2:
+            monotone = all(rows[i][1] >= rows[i + 1][1] for i in range(len(rows) - 1))
+            verdict = (
+                "beklenen yönde, monoton azalıyor"
+                if monotone
+                else "monoton DEĞİL — modelin bu eksende doğrulanmadığı anlamına gelir"
+            )
+            parts += [f"**Sonuç:** {verdict}."]
+        parts.append("")
+
+    parts += ["## 3. Mevsimsel NDVI genliği (yarı bağımsız)", ""]
     amplitude = seasonal_amplitude(config, grid)
     if amplitude is None:
         parts += ["Aylık NDVI kompozitleri eksik — bu kontrol atlandı.", ""]
@@ -226,7 +323,7 @@ def write_validation_report(
             parts += ["", f"**Sonuç:** {verdict}."]
         parts.append("")
 
-    parts += ["## 3. Katmanlı özet", "", "### Arazi örtüsüne göre ortalama risk", ""]
+    parts += ["## 4. Katmanlı özet", "", "### Arazi örtüsüne göre ortalama risk", ""]
     parts += ["| Arazi örtüsü | Ortalama risk | Alan payı |", "|---|---|---|"]
     for name, mean_risk, share in risk_by_landcover(config, grid, risk):
         parts.append(f"| {name} | {mean_risk:.4f} | %{share:.1f} |")
