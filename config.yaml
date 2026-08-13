@@ -58,6 +58,10 @@ periods:
   wet_season:
     start_month: 3
     end_month: 5
+  # Nemli dönem kompoziti AHP kriterlerinden biri DEĞİL — yalnızca karşılaştırma
+  # görseli için. Varsayılan olarak indirilmez (her ay ~3 dk ek süre).
+  # İleride "mevsimsel NDVI düşüşü" 8. kriter yapılmak istenirse açılabilir.
+  fetch_wet_season: false
   # Adım 6 animasyonu: tek bir temsili yılın 12 aylık serisi
   timeseries:
     year: 2024
@@ -76,29 +80,70 @@ data_sources:
   sentinel2:
     provider: "planetary_computer"
     collection: "sentinel-2-l2a"
-    max_scene_cloud_cover: 40      # sahne düzeyinde ön eleme (%)
+    max_scene_cloud_cover: 20      # sahne düzeyinde ön eleme (%)
     bands: { red: "B04", nir: "B08", scl: "SCL" }
     native_resolution_m: 10
     # SCL sınıfları: 0 no-data, 1 saturated, 3 cloud shadow, 7 unclassified,
     # 8 cloud medium, 9 cloud high, 10 thin cirrus, 11 snow/ice
     scl_mask_classes: [0, 1, 3, 7, 8, 9, 10, 11]
     composite_method: "median"
-    # Bellek kontrolü: 10m yerine 20m'de kompozit alıp 30m grid'e getir
-    processing_resolution_m: 20
-    chunk_size: 2048
+    # Sahneler doğrudan 30 m hedef grid'e yüklenir (native 10 m -> 30 m).
+    # Yansıma bantları alansal ortalama, SCL maskesi çoğunluk (mode) ile
+    # örneklenir; böylece maske 30 m hücrenin baskın sınıfını temsil eder.
+    # NOT: NDVI doğrusal olmayan bir orandır, dolayısıyla "30 m'ye ortalanmış
+    # yansımadan NDVI" ile "10 m NDVI'ın ortalaması" birebir aynı değildir.
+    # Fark küçüktür ve katman zaten göreli olarak normalize edildiğinden
+    # kabul edilmiştir (yaygın uygulama).
+    resampling: { B04: "average", B08: "average", SCL: "mode" }
+    groupby: "solar_day"           # aynı günün bitişik sahnelerini birleştir
+    chunk_size: 1024
+    # --- BASELINE 04.00 RADYOMETRİK OFFSET UYUMLULAŞTIRMASI ---
+    # 25 Ocak 2022'de yürürlüğe giren işleme baseline'ı 04.00, tüm L2A
+    # bantlarına BOA_ADD_OFFSET = -1000 ekler. Planetary Computer veriyi
+    # düzeltmeden sunar (item'larda `boa_offset_applied` alanı yoktur), yani
+    # düzeltmeyi biz yapmak zorundayız.
+    #
+    # Bu AOI'de ölçülen etki (Ağustos, bulut<%10, ham DN medyanı):
+    #   2019 (bl 02.12): B04=1180 B08=2859 -> NDVI 0.416
+    #   2021 (bl 03.00): B04=1232 B08=2869 -> NDVI 0.399
+    #   2022 (bl 04.00): B04=2103 B08=3712 -> NDVI 0.277  (düzeltilince 0.422)
+    #   2024 (bl 05.11): B04=2245 B08=3873 -> NDVI 0.266  (düzeltilince 0.395)
+    #
+    # Düzeltilmezse 2022 sonrası yıllar sistematik olarak ~0.13 düşük NDVI
+    # verir ve bu, gerçek bitki örtüsü stresiyle karıştırılır.
+    boa_add_offset: -1000
+    boa_offset_baseline_threshold: 4.0
+    # Animasyon (Adım 6) kış aylarını da kapsamak zorunda; sahne düzeyi bulut
+    # filtresi orada gevşetilir. Asıl temizlik zaten piksel bazlı SCL maskesiyle
+    # yapıldığından bu güvenli, sadece daha fazla okuma anlamına geliyor.
+    timeseries_max_scene_cloud_cover: 80
+    min_scenes: 4                  # bu sayının altında kalırsa eşik %100'e gevşer
+    max_gap_fraction: 0.20         # bu oranın üstünde boşluk kalırsa uyarı basılır
 
   landcover:
     provider: "planetary_computer"
-    collection: "esa-worldcover"   # 10m, 11 sınıf, 2020 & 2021
+    collection: "esa-worldcover"   # 10m, 11 sınıf
+    # DİKKAT: bu koleksiyonun item'larında `datetime` alanı None'dır;
+    # yıl filtresi `start_datetime` üzerinden yapılmalıdır.
+    # AOI tek bir 3°x3° tile ile kapsanır: N36E027 (2020 v100 / 2021 v200).
     year: 2021
+    asset: "map"
     lookup_file: "lookups/worldcover_susceptibility.json"
 
   lst:
     provider: "planetary_computer"
     collection: "modis-11A2-061"   # 8-günlük, 1 km, gündüz/gece LST
     asset: "LST_Day_1km"
+    # DİKKAT: bu koleksiyon HEM Terra (MOD11A2, ~10:30 yerel geçiş) HEM Aqua
+    # (MYD11A2, ~13:30 yerel geçiş) ürünlerini içerir ve `platform` özelliği
+    # boş gelir — ayrım item id ön ekinden yapılmalıdır. İkisini karıştırmak
+    # geçiş saati farkı yüzünden birkaç K'lik sistematik sapma yaratır.
+    # Varsayılan Aqua: öğleden sonraki geçiş günlük maksimum yüzey sıcaklığına
+    # ve dolayısıyla termal strese daha yakındır.
+    platform: "MYD11A2"            # MYD11A2 (Aqua) | MOD11A2 (Terra) | both
     scale_factor: 0.02             # MODIS ölçek katsayısı (Kelvin)
     kelvin_to_celsius: 273.15
+    valid_range: [7500, 65535]     # ham uint16; 0 = dolgu değeri
     aggregation: "mean"            # kurak dönem ortalaması
 
   precipitation:
@@ -110,11 +155,13 @@ data_sources:
 
   water:
     provider: "osm"
-    # osmnx features_from_bbox etiketleri
-    tags:
-      waterway: ["river", "stream", "canal"]
-      natural: ["water"]
-      landuse: ["reservoir"]
+    # osmnx `features_from_bbox` etiketleri. Her grup AYRI sorgulanır: OSM'de
+    # karşılığı olmayan bir etiket (ör. AOI'de landuse=reservoir yok, Demirköprü
+    # natural=water olarak etiketli) tüm sorguyu düşürmemeli.
+    tag_groups:
+      - { waterway: ["river", "stream", "canal"] }
+      - { natural: ["water"] }
+      - { landuse: ["reservoir", "basin"] }
     max_distance_m: 15000          # bu mesafenin ötesi doygunlaşır (normalizasyon tavanı)
 
 # -----------------------------------------------------------------------------
@@ -261,8 +308,46 @@ classification:
     3: "Orta"
     4: "Yüksek"
     5: "Çok yüksek"
-  colors: ["#2c7bb6", "#abd9e9", "#ffffbf", "#fdae61", "#d7191c"]
   kmeans_crosscheck: true     # scikit-learn ile bağımsız sınıf doğrulaması
+
+  # --- RENK PALETİ ---
+  # Risk sınıfları ORDINAL bir değişkendir (sıra anlam taşır), bu yüzden tek
+  # hue üzerinde monoton açıklık adımları kullanılır. Sık görülen mavi-sarı-
+  # kırmızı gökkuşağı paleti bu iş için yanlıştır: açıklık monoton olmadığından
+  # sıra gözle okunamaz, sarı orta sınıf beyaz zeminde kaybolur ve gri
+  # basımda/renk körlüğünde sınıflar birbirine karışır.
+  #
+  # Doğrulama (dataviz ordinal kontrolleri, zemin #fcfcfb):
+  #   bu palet          -> 4/4 PASS (açık uç 2.30:1)
+  #   gökkuşağı paleti  -> 3/4 FAIL (monotonluk, tek hue, açık uç 1.01:1)
+  colors: ["#e89286", "#dd6a5c", "#cc4234", "#a12c24", "#6b1c15"]
+  colors_dark: ["#fadcd5", "#f2ac9f", "#e37b68", "#c25243", "#8a3931"]
+
+# -----------------------------------------------------------------------------
+# GÖRSELLEŞTİRME (Adım 5-6)
+# -----------------------------------------------------------------------------
+visualization:
+  dpi: 160
+  # Kriter panelinde kullanılan 0-1 skor rampası: dokümante mavi sequential
+  # rampa (ordinal kontrollerinin tamamını geçer, açık uç 2.06:1).
+  criterion_ramp: ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab", "#104281"]
+
+  # NDVI rampası SEQUENTIAL'dır (sürekli büyüklük), ordinal değil. Ordinal
+  # rampalara uygulanan "açık uç zemine karşı >= 2:1" kuralı burada geçerli
+  # değildir: sürekli rampalarda en açık adımın zemine doğru çekilmesine izin
+  # verilir (çıplak toprak soluk, yoğun bitki örtüsü koyu yeşil okunur).
+  # Monotonluk, adım aralığı ve tek-hue kontrollerinin üçünü de geçer (hue
+  # yayılımı 17°, sınır 40°).
+  ndvi_ramp: ["#cfe3bd", "#aed397", "#88bd72", "#5aa051", "#2f8438", "#136a26", "#004d18"]
+  ndvi_display_range: [0.0, 0.85]
+
+  # Grafik mürekkebi ve zeminler
+  surface: "#fcfcfb"
+  text_primary: "#0b0b0b"
+  text_secondary: "#52514e"
+  text_muted: "#898781"
+  gridline: "#e1e0d9"
+  masked_color: "#e1e0d9"     # yerleşim/su/veri boşluğu
 
 # -----------------------------------------------------------------------------
 # ÇIKTI YOLLARI

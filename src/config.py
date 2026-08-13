@@ -69,6 +69,28 @@ class Config:
             raise ConfigError(f"'{path_key}' yolu config.yaml -> paths altında yok") from exc
         return PROJECT_ROOT / rel
 
+    def is_scenario_dependent(self, name: str) -> bool:
+        """Bu kriterin değeri seçili senaryoya göre değişiyor mu?"""
+        definitions = (self.raw.get("scenarios") or {}).get("definitions") or {}
+        return any(
+            name in (definition.get("criteria_overrides") or {})
+            for definition in definitions.values()
+        )
+
+    def criterion_path(self, name: str) -> Path:
+        """Bir kriter raster'ının yazılacağı/okunacağı yol.
+
+        Senaryoya bağlı kriterler (eğim) dosya adında senaryo etiketi taşır.
+        Taşımasalardı `flat_riskier` çalıştırması `steep_riskier`ın ürettiği
+        `slope.tif`i sessizce yeniden kullanır, iki senaryo aynı çıkar ve
+        senaryo karşılaştırması anlamsız bir %100 uyum raporlardı.
+
+        Senaryodan bağımsız kriterler tek kopya tutulur — aynı veriyi senaryo
+        sayısı kadar çoğaltmanın anlamı yok.
+        """
+        suffix = f"__{self.scenario}" if self.is_scenario_dependent(name) else ""
+        return self.resolve("criteria") / f"{name}{suffix}.tif"
+
 
 def load_config(
     path: str | Path | None = None,

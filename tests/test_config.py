@@ -110,6 +110,48 @@ def test_unknown_scenario_raises():
         load_config(scenario="olmayan_senaryo")
 
 
+# --- Senaryoya bağlı kriter yolları ------------------------------------------
+
+
+def test_only_overridden_criteria_are_scenario_dependent():
+    config = load_config()
+    assert config.is_scenario_dependent("slope") is True
+    for name in config.criteria_order:
+        if name != "slope":
+            assert config.is_scenario_dependent(name) is False, f"{name} senaryoya bağlı olmamalı"
+
+
+def test_scenario_dependent_criterion_gets_distinct_paths():
+    """Regresyon: iki senaryonun eğim katmanı AYNI dosyaya yazılıyordu.
+
+    Sonuç: `flat_riskier` çalıştırması `steep_riskier`ın ürettiği slope.tif'i
+    sessizce yeniden kullanıyor, iki senaryo aynı çıkıyor ve senaryo
+    karşılaştırması anlamsız bir %100 uyum raporluyordu.
+    """
+    steep = load_config(scenario="steep_riskier").criterion_path("slope")
+    flat = load_config(scenario="flat_riskier").criterion_path("slope")
+
+    assert steep != flat
+    assert "steep_riskier" in steep.name
+    assert "flat_riskier" in flat.name
+
+
+def test_scenario_independent_criteria_share_one_file():
+    """Senaryodan etkilenmeyen katmanları çoğaltmanın anlamı yok."""
+    steep = load_config(scenario="steep_riskier")
+    flat = load_config(scenario="flat_riskier")
+
+    for name in ("precipitation", "ndvi_dry", "lst", "landcover", "distance_to_water", "aspect"):
+        assert steep.criterion_path(name) == flat.criterion_path(name)
+        assert "__" not in steep.criterion_path(name).name
+
+
+def test_criterion_paths_are_unique_within_a_scenario():
+    config = load_config()
+    paths = [config.criterion_path(name) for name in config.criteria_order]
+    assert len(set(paths)) == len(paths)
+
+
 # --- Doğrulama hataları ------------------------------------------------------
 
 

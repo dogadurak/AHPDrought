@@ -24,6 +24,12 @@ outputs/**/*.nc
 outputs/**/*.zarr/
 !outputs/**/.gitkeep
 
+# Animasyonun ara kareleri repoya girmesin (GIF'in kendisi girer)
+outputs/figures/_frames/
+
+# osmnx'in Overpass yanıt önbelleği (proje kökünde açılır, ~7 MB)
+cache/
+
 # README'ye gömülecek küçük görseller repoda kalsın:
 !outputs/figures/**/*.png
 !outputs/figures/**/*.gif
