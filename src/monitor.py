@@ -73,6 +73,11 @@ class AnomalyResult:
     baseline_years: tuple[int, ...]
     index_name: str
     masked_share: float = 0.0
+    standardized: bool = True
+
+    @property
+    def unit(self) -> str:
+        return "z" if self.standardized else f"{self.index_name.upper()} birimi"
 
     def class_shares(self) -> list[tuple[str, float]]:
         valid = self.z_score[np.isfinite(self.z_score)]
@@ -133,6 +138,7 @@ def ndvi_anomaly(
     index_name: str | None = None,
     min_years: int = MIN_BASELINE_YEARS,
     min_std: float = MIN_BASELINE_STD,
+    standardize: bool = True,
 ) -> AnomalyResult:
     """Bir yılın kurak dönem NDVI'ının, diğer yıllara göre z-skoru.
 
@@ -142,6 +148,18 @@ def ndvi_anomaly(
     Taban çizgisi standart sapması `min_std`in altında kalan pikseller
     maskelenir: orada z-skoru sıfıra bölmeye yaklaşır ve anlamsız uç değerler
     üretir (bkz. MIN_BASELINE_STD).
+
+    Args:
+        standardize: True ise z-skoru (sapma / kendi std'si), False ise HAM
+            fark (NDVI birimi) döndürür.
+
+            Bu ayrım önemli. z-skoru her pikseli kendi değişkenliğine böler;
+            yapısal olarak kurak bir piksel zaten hep kuraktır, varyansı
+            düşüktür ve büyük bir z üretemez. Orman ya da sulanan tarımın ise
+            kaybedecek NDVI'ı vardır. Sonuç: z-skoru, yapısal riskle TERS
+            yönde çalışabilir ve risk haritasının sınamasını sistematik olarak
+            bozar. Ham fark bu yanlılığı taşımaz — "kaç NDVI birimi kaybedildi"
+            sorusunu doğrudan sorar.
     """
     index_name = index_name or config["data_sources"]["sentinel2"].get("vegetation_index", "ndvi")
     reference_years = [y for y in config["periods"]["reference_years"] if y != year]
@@ -158,9 +176,15 @@ def ndvi_anomaly(
     mean = np.nanmean(baseline, axis=0)
     std = np.nanstd(baseline, axis=0, ddof=1)
 
-    unstable = ~(std > min_std)
-    with np.errstate(invalid="ignore", divide="ignore"):
-        z = np.where(unstable, np.nan, (target - mean) / std)
+    difference = target - mean
+    if standardize:
+        unstable = ~(std > min_std)
+        with np.errstate(invalid="ignore", divide="ignore"):
+            z = np.where(unstable, np.nan, difference / std)
+    else:
+        # Ham farkta sıfıra bölme yok; yalnızca veri boşlukları maskeli.
+        unstable = np.zeros_like(difference, dtype=bool)
+        z = difference
 
     masked_share = float(np.isnan(z).mean())
     unstable_share = float(unstable[np.isfinite(std)].mean()) if np.isfinite(std).any() else 0.0
@@ -176,6 +200,7 @@ def ndvi_anomaly(
         baseline_years=tuple(reference_years),
         index_name=index_name,
         masked_share=masked_share,
+        standardized=standardize,
     )
 
 

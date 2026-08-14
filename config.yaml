@@ -51,7 +51,17 @@ aoi:
 # -----------------------------------------------------------------------------
 periods:
   # Çok yıllı kompozit: tek yılın anomalisine bağlı kalmamak için.
-  reference_years: [2019, 2020, 2021, 2022, 2023, 2024]
+  #
+  # 2017'den başlıyor çünkü Sentinel-2B o yıl devreye girdi ve kurak dönem
+  # sahne sayısı 2015'te 20, 2016'da 32 iken 2017'den itibaren 60+'a çıkıyor.
+  # Tek bir uydunun tarttığı iki yılı katmak, taban çizgisinin veri kalitesini
+  # yıllar arasında değiştirirdi — anomali hesabında bu, iklim sinyaliyle
+  # örnekleme farkını karıştırmak demek olurdu.
+  #
+  # 9 yıl, ilk sürümdeki 6 yıla göre iki şeyi düzeltiyor:
+  #   - anomali taban çizgisi (hedef yıl dışlanınca) 5 -> 8 yıla çıkıyor
+  #   - operasyonel sınama tek yıl yerine 9 yıl üzerinden yapılabiliyor
+  reference_years: [2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
   dry_season:
     start_month: 7
     end_month: 9

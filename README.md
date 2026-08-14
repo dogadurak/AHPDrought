@@ -5,7 +5,8 @@ haritası, duyarlılık analizi ve NDVI zaman serisi görselleştirmesi.
 
 **Pilot bölge:** Gediz Havzası, Manisa — Salihli / Alaşehir / Sarıgöl hattı
 (Demirköprü Barajı membaı dahil), 27.6°E–28.6°E, 38.2°N–38.7°N → **4.842 km²**,
-30 m çözünürlükte 5,53 milyon hücre.
+30 m çözünürlükte 5,53 milyon hücre.  
+**Referans dönemi:** 2017–2025 (9 yıl) · **İklim serisi:** 1958–2025 (68 yıl)
 
 ![Kuraklık risk haritası](outputs/figures/risk_map_steep_riskier.png)
 
@@ -44,7 +45,7 @@ suya yakın, skorlar 0–0,74 bandına sıkışıyor.
 | Yüksek | 1.045 km² | %22,5 |
 | Çok yüksek | 508 km² | %11,0 |
 
-Bağımsız k-means sınıflandırmasıyla **%97,8 uyum** — sınıflar yöntem seçimine
+Bağımsız k-means sınıflandırmasıyla **%100,0 uyum** — sınıflar yöntem seçimine
 değil verinin kendi yapısına dayanıyor.
 
 ### Duyarlılık analizi
@@ -167,28 +168,42 @@ yağış serisinden hesaplanıyor. Doğrulama: ortalama −0,000, standart sapma
 Tespit edilen en şiddetli kuraklıklar Türkiye'nin bilinen kurak dönemleriyle
 örtüşüyor: **1989-01–1991-02 (26 ay)**, 2000–2001, 1991–1993, **2007 (11 ay)**.
 
-### Tahmin: dürüst sonuç
+### Tahmin: sorunun kurulumu sonucu belirledi
 
-| Ufuk | Yöntem | Beceri (iklimatolojiye karşı) |
-|---|---|---:|
-| 1 ay | sönümlü kalıcılık | **+0,395** |
-| 1 ay | kalıcılık | +0,259 |
-| 3 ay | sönümlü kalıcılık | −0,001 |
-| 3 ay | kalıcılık | **−0,964** |
-| 6 ay | kalıcılık | **−1,076** |
+Önce **mekanik** soru soruldu: "SPI-3'ten 3 ay sonraki SPI-3." Beceri çıkmadı,
+çünkü ay *t* için SPI-3 *t−2…t* penceresini toplar, *t+3* için *t+1…t+3*'ü —
+**iki pencere hiç kesişmez**, paylaşılacak bilgi yoktur. Bu bir veri bulgusu
+değil, kötü kurulmuş bir soruydu.
 
-**3 ay sonrası için bu yaklaşımla tahmin becerisi yok.** Sebep matematiksel:
-SPI-3'ün 3 aylık gecikme korelasyonu ρ = −0,024 — sıfır. Ay *t* için SPI-3,
-*t−2…t* penceresini toplar; *t+3* için *t+1…t+3*'ü toplar. **İki pencere hiç
-kesişmiyor**, dolayısıyla paylaşılan bilgi yok.
+Sonra **fiziksel** soru soruldu. Akdeniz ikliminde yaz yağışsızdır (Gediz'de
+temmuz-ağustos iklimatolojisi 8 mm, kışın 121 mm — **15 kat** fark). Yaz bitki
+örtüsünü belirleyen o yazki yağış değil, **kışın biriken sudur**. Öyleyse:
+*nisan sonunda bilinen durumdan o yazın stresini öngörebilir miyiz?*
 
-Bu, ayarlanarak düzeltilecek bir sonuç değil; verinin söylediği şey. Saf
-kalıcılığın 3 ve 6 ayda **eksi** beceri vermesi ise daha da öğretici: "bugünkü
-gibi devam edecek" demek, o ufukta hiçbir şey dememekten *kötüdür*.
+| Öngörücü (nisan sonunda bilinir) | İklimatolojiye karşı | Kalıcılığa karşı | r |
+|---|---:|---:|---:|
+| **İlkbahar toprak nemi** | **+0,445** | **+0,732** | +0,669 |
+| İlkbahar yağışı | +0,379 | +0,701 | +0,712 |
+| İlkbahar PET | +0,196 | +0,613 | +0,650 |
+| *kalıcılık (geçen yaz)* | −1,075 | 0 | −0,110 |
 
-Gerçek 3 aylık tahmin için dinamik mevsimsel iklim öngörüsü (ECMWF SEAS5,
-NOAA CFSv2) gerekir — bunlar ücretsiz ama Copernicus CDS kaydı/API anahtarı
-istediği için projenin "anahtarsız" kısıtını kırar.
+68 yıl (1958–2025), kronolojik bölme (eğitim 1958–2004, test 2005–2025), her
+iki taban çizgisi de geçildi. Model kasten en basit haliyle (tek değişkenli
+doğrusal regresyon) — amaç en iyi tahmini bulmak değil, fiziksel bağın öngörü
+değeri taşıdığını göstermek.
+
+**Karşıtlığın kendisi bulgu:** aynı veri, aynı ufuk, aynı katı değerlendirme.
+
+| Soru | Beceri |
+|---|---:|
+| SPI-3 → 3 ay sonraki SPI-3 (mekanik) | **−0,96** |
+| Nisan toprak nemi → yaz toprak nemi (fiziksel) | **+0,45** |
+
+Öngörülebilirlik var; ama ancak doğru soru sorulursa görünüyor.
+
+Dinamik mevsimsel iklim öngörüsü (ECMWF SEAS5, NOAA CFSv2) ufku daha da
+uzatabilir — ücretsiz ama Copernicus CDS kaydı gerektirdiği için projenin
+"anahtarsız" kısıtını kırar.
 
 ### İzleme: mekânsal anomali
 
@@ -203,25 +218,56 @@ Arazi örtüsüne göre ortalama anomali fiziksel olarak tutarlı: mera (−0,37
 çıplak (−0,273) > tarım (−0,224) > çalılık (−0,093) > orman (−0,071). Sulanan
 tarım ve derin köklü orman en az etkilenen, yağışa bağlı mera en çok.
 
-### Risk haritasının operasyonel sınaması — DOĞRULANMADI
+### En güçlü doğrulama: sulama, NDVI'daki kuraklık sinyalini maskeliyor
 
-| Risk sınıfı | 2024 NDVI anomalisi (z) |
-|---|---:|
-| Çok düşük | −0,167 |
-| Düşük | −0,199 |
-| Orta | −0,158 |
-| Yüksek | −0,211 |
-| Çok yüksek | **−0,292** |
+Kurak yıllarda tarım alanı NDVI anomalisi, sulama şebekesine olan mesafeye göre:
 
-Uçlar doğru yönde (sınıf 5 < sınıf 1) ama sıralama monoton değil ve Spearman
-ρ = −0,096, yani zayıf. **Bunu geçirmek için ayar yapmadım.** İki katman farklı
-şeyler ölçüyor: risk haritası 6 yıllık ortalamaya dayanan *yapısal* bir indeks
-("burası kronik olarak dayanıksız"), anomali ise tek yılın kendi geçmişine göre
-sapması ("bu yıl normalinden ne kadar saptı"). Yapısal olarak kurak bir alan
-zaten her yıl kuraktır; kendi normaline göre sapması büyük olmak zorunda değil.
+| Yıl | Kanala < 2 km | Kanaldan > 10 km | Oran |
+|---|---:|---:|---:|
+| 2024 (kurak) | −0,0043 | **−0,0428** | 10× |
+| 2025 (kurak) | −0,0151 | **−0,0315** | 2× |
+| 2023 (yağışlı) | +0,0146 | +0,0177 | **fark yok** |
 
-Güçlü sınama, birden çok kurak yılın anomali ortalamasıyla ya da doğrudan verim
-verisiyle yapılır.
+Yağmura bağlı tarım, kurak yıllarda sulanan tarımdan **3–10 kat fazla** NDVI
+kaybediyor; yağışlı yılda iki grup arasında fark yok. Fark yalnızca stres varken
+ortaya çıkıyor — yani bu, sulama kriterinin bağımsız gözlemle doğrulanmasıdır.
+
+Aynı zamanda önemli bir metodolojik sonuç: **sulanan bir havzada NDVI, tarımsal
+kuraklık etkisini ölçemez.** Çiftçi sularsa yeşillik korunur; etki suya,
+maliyete ve rezervuar seviyesine yansır, spektruma değil.
+
+### Risk haritasının 5 sınıflı mekânsal sıralaması — DOĞRULANMADI
+
+Sınama dört kez, giderek daha adil kurulumla tekrarlandı:
+
+| Kurulum | Kurak yıl ρ | Sonuç |
+|---|---:|---|
+| Tek yıl (2024), z-skoru, havza geneli | −0,096 | zayıf |
+| 9 yıl, z-skoru, havza geneli | −0,042 | ters yönde |
+| 9 yıl, ham NDVI farkı, yalnızca tarım | −0,057 | fiilen sıfır |
+| 9 yıl, ham fark, **yağmura bağlı tarım** | **−0,067** | kurak ≈ yağışlı |
+
+Her düzeltme sonucu iyileştirdi ama **hiçbiri hipotezi kurtarmadı**: kurak
+yıllarda ilişki yağışlı yıllardakinden güçlü değil. Ayarlayarak geçirmedim.
+
+Yol boyunca üç yanlılık bulundu ve düzeltildi:
+
+1. **Kurak yıl etiketi yanlıştı.** Yaz SPI'ıyla etiketlenince 9 yılda 1 kurak
+   yıl çıkıyordu — çünkü Gediz'de yaz zaten her yıl 8 mm. İlkbahar toprak
+   nemiyle etiketlenince 6 kurak yıl. Bu keyfî değil: Adım 12'de 68 yıllık
+   veriyle yaz stresini en iyi öngören değişkenin o olduğu ölçüldü.
+2. **z-skoru yapısal riskle ters çalışıyor.** Her pikseli kendi varyansına
+   böler; kronik kurak piksel zaten hep kuraktır, büyük z üretemez.
+3. **NDVI kaybı farklı bitki yoğunluklarında adil ölçü değil.** NDVI'ı 0,15
+   olan çıplak toprak 0,3 birim kaybedemez; ormanın kaybedecek çok şeyi var.
+
+Ve bir de kendi hüküm mantığımdaki hata: tek kurak yılla ρ = −0,04 gibi fiilen
+sıfır bir değere "DESTEKLENDİ" diyordu. Eşikler sıkılaştırıldı (en az 3 kurak
+yıl, en az 0,10 etki büyüklüğü); artık dürüst olanı söylüyor.
+
+**Ayrıca:** 68 yıllık kayıtta en şiddetli kuraklıklar **1989–91 (26 ay)** ve
+**2007** — ikisi de Sentinel-2'den (2015) önce. Uydu arşivi bu havzanın gerçek
+kuraklıklarıyla örtüşmüyor; mevcut 9 yıl, ağır stres örneği içermiyor.
 
 ## NDVI mi EVI mi?
 
@@ -373,6 +419,12 @@ python -m scripts.step06_ndvi_timeseries
 
 # Adım 7 — Doğrulama raporu
 python -m scripts.step07_validate
+
+# Adım 11 — Çok yıllı operasyonel sınama
+python -m scripts.step11_operational
+
+# Adım 12 — Mevsimsel öngörü (kış sonundan yaz stresi)
+python -m scripts.step12_seasonal
 
 # Adım 10 — Kuraklık izleme ve tahmin
 python -m scripts.step10_forecast --fetch    # 68 yıllık seriyi indir (~25 dk)
