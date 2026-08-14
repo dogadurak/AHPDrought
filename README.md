@@ -236,38 +236,66 @@ Aynı zamanda önemli bir metodolojik sonuç: **sulanan bir havzada NDVI, tarım
 kuraklık etkisini ölçemez.** Çiftçi sularsa yeşillik korunur; etki suya,
 maliyete ve rezervuar seviyesine yansır, spektruma değil.
 
-### Risk haritasının 5 sınıflı mekânsal sıralaması — DOĞRULANMADI
+### Risk haritasının mekânsal sıralaması — GERÇEK KURAKLIKLARDA SINANDI, DOĞRULANMADI
 
-Sınama dört kez, giderek daha adil kurulumla tekrarlandı:
+Sınama önce Sentinel-2 döneminde yapıldı ve "karar verilemez" ile bitti:
+2017–2025'te yalnızca **1 kurak yıl** vardı. Bu mazereti kaldırmak için
+**Landsat 5 (1985–2011, 30 m)** arşivi eklendi — havzanın gerçek
+kuraklıklarını kapsıyor.
 
-| Kurulum | Kurak yıl ρ | Sonuç |
-|---|---:|---|
-| Tek yıl (2024), z-skoru, havza geneli | −0,096 | zayıf |
-| 9 yıl, z-skoru, havza geneli | −0,042 | ters yönde |
-| 9 yıl, ham NDVI farkı, yalnızca tarım | −0,057 | fiilen sıfır |
-| 9 yıl, ham fark, **yağmura bağlı tarım** | **−0,067** | kurak ≈ yağışlı |
+| Sınama | Kurak yıl | Kurak yıl ρ | Normal yıl ρ | Sonuç |
+|---|---:|---:|---:|---|
+| Sentinel-2, tek yıl, z-skoru | 1 | −0,096 | — | karar verilemez |
+| Sentinel-2, 9 yıl, ham fark, tarım | 1 | −0,057 | −0,046 | karar verilemez |
+| **Landsat, 27 yıl, ham fark, tarım** | **7** | **−0,021** | −0,057 | **DESTEKLENMEDİ** |
 
-Her düzeltme sonucu iyileştirdi ama **hiçbiri hipotezi kurtarmadı**: kurak
-yıllarda ilişki yağışlı yıllardakinden güçlü değil. Ayarlayarak geçirmedim.
+Landsat sınamasındaki kurak yıllar havzanın en ağırları: **1989** (SPI-12 −2,45),
+**2001** (−2,30), **2007** (−2,35), **1992** (−1,90), ayrıca 1990, 1994, 2008.
 
-Yol boyunca üç yanlılık bulundu ve düzeltildi:
+Kurak yıllarda risk sınıflarının ortalama NDVI anomalisi:
 
-1. **Kurak yıl etiketi yanlıştı.** Yaz SPI'ıyla etiketlenince 9 yılda 1 kurak
-   yıl çıkıyordu — çünkü Gediz'de yaz zaten her yıl 8 mm. İlkbahar toprak
-   nemiyle etiketlenince 6 kurak yıl. Bu keyfî değil: Adım 12'de 68 yıllık
-   veriyle yaz stresini en iyi öngören değişkenin o olduğu ölçüldü.
-2. **z-skoru yapısal riskle ters çalışıyor.** Her pikseli kendi varyansına
-   böler; kronik kurak piksel zaten hep kuraktır, büyük z üretemez.
-3. **NDVI kaybı farklı bitki yoğunluklarında adil ölçü değil.** NDVI'ı 0,15
-   olan çıplak toprak 0,3 birim kaybedemez; ormanın kaybedecek çok şeyi var.
+| Sınıf | Kurak yıllar |
+|---|---:|
+| Çok düşük | −0,0218 |
+| Düşük | −0,0315 |
+| Orta | −0,0310 |
+| Yüksek | −0,0245 |
+| Çok yüksek | −0,0203 |
 
-Ve bir de kendi hüküm mantığımdaki hata: tek kurak yılla ρ = −0,04 gibi fiilen
-sıfır bir değere "DESTEKLENDİ" diyordu. Eşikler sıkılaştırıldı (en az 3 kurak
-yıl, en az 0,10 etki büyüklüğü); artık dürüst olanı söylüyor.
+Düz. Sıralama yok. Yıl bazında korelasyonlar rastgele işaret değiştiriyor
+(1985: +0,33 · 1999: −0,24 · 2001: −0,28) — sinyal değil gürültü.
 
-**Ayrıca:** 68 yıllık kayıtta en şiddetli kuraklıklar **1989–91 (26 ay)** ve
-**2007** — ikisi de Sentinel-2'den (2015) önce. Uydu arşivi bu havzanın gerçek
-kuraklıklarıyla örtüşmüyor; mevcut 9 yıl, ağır stres örneği içermiyor.
+**Yani: AHP risk haritası, kuraklıkta bitki örtüsünün nerede zarar göreceğini
+öngörmüyor.** Ayarlanarak geçirilmedi; aksine sınama giderek daha adil
+kuruldu ve sonuç değişmedi.
+
+#### Bu neden bir katkı, kusur değil
+
+Model iç tutarlılık ölçütlerinin hepsini geçiyor: CR = 0,0093, k-means uyumu
+%100, ağırlık duyarlılığı %92,4. Literatürdeki AHP kuraklık haritalarının
+büyük kısmı **tam da burada durur** — duyarlılık analizi yapılır, gözlenen
+etkiyle karşılaştırma yapılmaz. Bu proje o adımı attı ve olumsuz sonucu
+raporluyor.
+
+Üç somut çıkarım:
+
+1. **İç tutarlılık, geçerlilik değildir.** CR, k-means ve duyarlılık analizinin
+   hepsini geçen bir harita, gözlenen etkiyi öngörmeyebilir.
+2. **Sulanan havzada NDVI, kuraklık etkisinin ölçüsü değildir** (yukarıdaki
+   3–10 kat farkı hatırlayın). Etki suya ve maliyete yansıyor.
+3. **Doğrulama, uydu arşivinin kapsadığı dönemle sınırlıdır.** Bu havzanın
+   gerçek kuraklıkları Sentinel-2'den önce; Landsat olmasa test hiç
+   yapılamazdı.
+
+#### Bu sınamanın kendi sınırlılıkları
+
+- **Harita bugünkü verilerle kuruldu.** 1990'ı sınarken "mekânsal desen 35
+  yılda değişmedi" varsayılıyor. Topoğrafya ve toprak için güvenli; **sulama
+  ağı ve arazi örtüsü için tartışmalı** — Gediz'de sulu tarım o tarihten beri
+  genişledi. Sonuç, haritanın *bugünkü* hâlinin *geçmişteki* kuraklıkta ne
+  kadar iyi çalıştığını ölçer.
+- Landsat 5 TM ile Sentinel-2 MSI aynı NDVI'ı vermez; bu yüzden anomali
+  **Landsat döneminin kendi içinde** hesaplandı, iki dönem hiç karıştırılmadı.
 
 ## NDVI mi EVI mi?
 
@@ -425,6 +453,10 @@ python -m scripts.step11_operational
 
 # Adım 12 — Mevsimsel öngörü (kış sonundan yaz stresi)
 python -m scripts.step12_seasonal
+
+# Adım 13 — Gerçek kuraklıklarda sınama (Landsat 1985-2011)
+python -m scripts.step13_historical --fetch   # ~90 dk
+python -m scripts.step13_historical
 
 # Adım 10 — Kuraklık izleme ve tahmin
 python -m scripts.step10_forecast --fetch    # 68 yıllık seriyi indir (~25 dk)

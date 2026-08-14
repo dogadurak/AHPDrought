@@ -238,6 +238,34 @@ data_sources:
     native_resolution_m: 250
     nodata_value: 0                # 0 = veri yok (su yüzeyi, kayalık)
 
+  # Tarihsel sınama (Adım 13) — KRİTER DEĞİL. Risk haritasını, uydu öncesi
+  # dönemin gerçek kuraklıklarında (1989-91, 2007) sınamak için.
+  landsat:
+    provider: "planetary_computer"
+    collection: "landsat-c2-l2"
+    # YALNIZCA Landsat 5 (TM). Landsat 7 (ETM+) ve 8/9 (OLI) farklı bant
+    # genişlikleri yüzünden biraz farklı NDVI üretir; tek sensöre bağlı kalmak
+    # uyumlulaştırma katsayısı ihtiyacını ortadan kaldırır. Ayrıca Landsat 7'nin
+    # 2003 sonrası SLC arızası şeritli boşluklar üretir.
+    platform: "landsat-5"
+    start_year: 1985
+    end_year: 2011
+    max_scene_cloud_cover: 40
+    min_scenes: 6
+    max_gap_fraction: 0.15
+    bands: { red: "red", nir: "nir08", qa: "qa_pixel" }
+    resampling: { red: "average", nir08: "average", qa_pixel: "nearest" }
+    groupby: "solar_day"
+    chunk_size: 1024
+    # ÖLÇEKLEME: yüzey yansıması = DN * 2.75e-05 - 0.2, dolgu değeri 0.
+    # Bu katsayılar item metadatasındaki `raster:bands` alanından OKUNUR,
+    # koda sabit yazılmaz — sağlayıcı değiştirirse sessizce yanlış olmasın.
+    #
+    # DÖNEMLER KARIŞTIRILMAZ: ölçülen 1990 kurak dönem NDVI medyanı ~0.13,
+    # Sentinel-2 döneminde aynı mevsim ~0.45. Fark yalnızca kuraklıktan değil;
+    # sensör farkı ve 35 yılda genişleyen sulu tarım da içinde. Bu yüzden
+    # anomali Landsat döneminin KENDİ İÇİNDE hesaplanır.
+
   # Bağımsız doğrulama değişkeni (Adım 7) — KRİTER DEĞİL, girdi olarak
   # kullanılmaz. ET/PET oranı (buharlaşma açığı) su kısıtının doğrudan
   # ölçüsüdür ve modelin hiçbir girdisinden türemez.
