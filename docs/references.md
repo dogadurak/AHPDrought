@@ -154,6 +154,38 @@ bazlı zaman serisi analizinin tamamlayıcısı olarak.
 
 ---
 
+## 4b. Kuraklık indeksi ve tahmin (Adım 10)
+
+**McKee, T. B., Doesken, N. J. & Kleist, J. (1993).** The relationship of drought
+frequency and duration to time scales. *8th Conference on Applied Climatology*,
+Anaheim, CA, 179–184. **[künye ✓]**
+
+SPI'ın tanımı: yağışı N ay boyunca biriktir, her takvim ayı için ayrı gama
+dağılımı uyarla, kümülatif olasılığı standart normal kuantile çevir. Takvim ayı
+bazında uyarlama şarttır — aksi halde Akdeniz ikliminde kuru yaz "kuraklık"
+diye okunur. Uygulama: [`src/drought_index.py`](../src/drought_index.py).
+
+**Thom, H. C. S. (1958).** A note on the gamma distribution. *Monthly Weather
+Review*, 86(4), 117–122.
+<https://doi.org/10.1175/1520-0493(1958)086%3C0117:ANOTGD%3E2.0.CO;2>
+**[künye ✓]**
+
+Sıfır yağışlı ayların karma dağılımla ele alınması: `H(x) = q + (1−q)·G(x)`.
+Gama dağılımı sıfırda tanımsızdır; Gediz'de ağustoslar sık sık tamamen kurudur,
+dolayısıyla bu düzeltme olmadan yaz SPI'ı sistematik olarak yanlış çıkar.
+
+**Beguería, S., Vicente-Serrano, S. M., Reig, F. & Latorre, B. (2013).**
+Standardized precipitation evapotranspiration index (SPEI) revisited: parameter
+fitting, evapotranspiration models, tools, datasets and drought monitoring.
+*International Journal of Climatology*, 34(10), 3001–3023.
+<https://doi.org/10.1002/joc.3887> **[künye ✓]**
+
+Dağılım uyarlama tercihleri ve kalibrasyon dönemi seçiminin sonuca etkisi
+üzerine. **Bu projede uygulanmayan bir iyileştirmeye işaret ediyor:** SPEI,
+yağışın yanına potansiyel evapotranspirasyonu da katar ve ısınan iklimde
+SPI'dan daha bilgilendiricidir. TerraClimate'te `pet` değişkeni mevcut,
+yani SPEI'ye geçiş bu projede teknik olarak açık bir adımdır.
+
 ## 5. Yöntemsel araçlar
 
 **Horn, B. K. P. (1981).** Hill shading and the reflectance map. *Proceedings
@@ -239,6 +271,20 @@ bir Penman-Monteith modelinden gelir ve projedeki hiçbir kriter onun girdisi
 değildir. Tek dolaylı bağ MOD16'nın MODIS LAI/FPAR kullanmasıdır — bitki
 örtüsüyle akrabalığı sıfır değil, bu yüzden "tamamen bağımsız" denmiyor.
 Ölçülen: ET 441 mm/yıl, PET 1653 mm/yıl, oran 0.132–0.826.
+
+**Abatzoglou, J. T., Dobrowski, S. Z., Parks, S. A. & Hegewisch, K. C. (2018).**
+TerraClimate, a high-resolution global dataset of monthly climate and climatic
+water balance from 1958–2015. *Scientific Data*, 5, 170191.
+<https://doi.org/10.1038/sdata.2017.191> **[künye ✓]**
+
+Adım 10'un uzun yağış serisi (1958–2025, 68 yıl) ve bağımsız PDSI karşılaştırma
+serisi. Idaho Üniversitesi THREDDS sunucusundan **OPeNDAP** ile çekilir.
+
+> **Neden OPeNDAP, zarr değil.** Aynı veri Planetary Computer'da zarr olarak da
+> var ama chunk yapısı (12, 1024, 1024) float64 = **101 MB/chunk**. AOI 12×24
+> piksel ve tek chunk'ın içinde; 68 yıllık seri için 64 chunk, yani **~6.4 GB
+> transfer** gerekiyordu — 816 sayı almak için. OPeNDAP sunucu tarafında
+> dilimler: aynı veri için birkaç KB iner, yıl başına ~18 saniye.
 
 **OpenStreetMap** — © OpenStreetMap katılımcıları, Open Database License (ODbL).
 <https://www.openstreetmap.org/copyright>

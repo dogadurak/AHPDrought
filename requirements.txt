@@ -24,8 +24,10 @@ pystac-client>=0.8         # STAC arama (Planetary Computer)
 planetary-computer>=1.0    # asset imzalama (ücretsiz, anonim erişim yeterli)
 odc-stac>=0.3.10           # STAC -> xarray yükleme
 dask[array]>=2024.7        # parçalı (chunked) Sentinel-2 kompoziti
-requests>=2.32             # CHIRPS doğrudan HTTP indirme
-osmnx>=2.0                 # OSM su kaynakları + idari sınır
+requests>=2.32             # CHIRPS ve SoilGrids WCS doğrudan HTTP
+osmnx>=2.0                 # OSM su kaynakları + sulama altyapısı
+netCDF4>=1.7               # TerraClimate OPeNDAP (68 yıllık iklim serisi)
+pandas>=2.2                # zaman serisi: SPI, tahmin, beceri değerlendirmesi
 
 # --- Görselleştirme ---
 matplotlib>=3.9

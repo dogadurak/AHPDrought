@@ -88,7 +88,15 @@ def _precipitation(config: Config, grid: TargetGrid) -> np.ndarray:
 
 
 def _ndvi_dry(config: Config, grid: TargetGrid) -> np.ndarray:
-    return _read_interim(config, grid, "ndvi_dry.tif")
+    """Kurak dönem bitki örtüsü indeksi.
+
+    Hangi indeksin kullanıldığı `data_sources.sentinel2.vegetation_index` ile
+    seçilir (ndvi | evi). Kriter anahtarı geçmişe dönük uyum için `ndvi_dry`
+    kalır; iki indeksin sonuca etkisi
+    `python -m scripts.compare_vegetation_index` ile karşılaştırılabilir.
+    """
+    index = config["data_sources"]["sentinel2"].get("vegetation_index", "ndvi")
+    return _read_interim(config, grid, f"{index}_dry.tif")
 
 
 def _lst(config: Config, grid: TargetGrid) -> np.ndarray:

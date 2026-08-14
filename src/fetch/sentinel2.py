@@ -26,7 +26,15 @@ import numpy as np
 
 from ..config import Config
 from ..grid import TargetGrid, read_grid_aligned, write_raster
-from .common import interim_path, load_to_grid, month_bounds, month_range, search_items, skip_if_cached
+from .common import (
+    interim_path,
+    load_to_grid,
+    month_bounds,
+    month_range,
+    retry_on_expired_signature,
+    search_items,
+    skip_if_cached,
+)
 
 MONTHLY_DIR = "ndvi_monthly"
 
@@ -39,32 +47,31 @@ def fetch_ndvi_monthly(
     *,
     max_cloud: float | None = None,
     overwrite: bool = False,
+    index: str = "ndvi",
 ) -> Path:
-    """Bir ayın bulutsuz medyan NDVI kompozitini üretir ve önbelleğe yazar."""
-    out = interim_path(config, MONTHLY_DIR, f"ndvi_{year}_{month:02d}.tif")
-    label = f"NDVI {year}-{month:02d}"
+    """Bir ayın bulutsuz medyan bitki örtüsü indeksi kompozitini üretir."""
+    out = interim_path(config, MONTHLY_DIR, f"{index}_{year}_{month:02d}.tif")
+    label = f"{index.upper()} {year}-{month:02d}"
     if skip_if_cached(out, overwrite, label):
         return out
 
     cfg = config["data_sources"]["sentinel2"]
     threshold = cfg["max_scene_cloud_cover"] if max_cloud is None else max_cloud
 
-    items = search_items(
-        config,
-        cfg["collection"],
-        datetime=month_bounds(year, month),
-        query={"eo:cloud_cover": {"lt": threshold}},
-    )
+    def search(cloud: float) -> list:
+        return search_items(
+            config,
+            cfg["collection"],
+            datetime=month_bounds(year, month),
+            query={"eo:cloud_cover": {"lt": cloud}},
+        )
+
+    items = search(threshold)
 
     # Bulutlu aylarda eşiği gevşet: piksel bazlı SCL maskesi zaten uygulanıyor,
     # sahne düzeyi filtre sadece gereksiz okumayı azaltmak için.
     if len(items) < cfg.get("min_scenes", 4) and threshold < 100:
-        relaxed = search_items(
-            config,
-            cfg["collection"],
-            datetime=month_bounds(year, month),
-            query={"eo:cloud_cover": {"lt": 100}},
-        )
+        relaxed = search(100)
         if len(relaxed) > len(items):
             print(
                 f"  [{label}] bulut eşiği %{threshold:g} ile {len(items)} sahne — "
@@ -75,13 +82,18 @@ def fetch_ndvi_monthly(
     if not items:
         raise RuntimeError(f"{label}: hiç Sentinel-2 sahnesi bulunamadı")
 
-    ndvi = _composite(config, grid, items, cfg)
-    array = ndvi.values.astype("float32")
+    # Saatlerce süren işlerde SAS imzaları iş bitmeden dolabilir; her deneme
+    # item'ları yeniden arayıp yeniden imzalar.
+    composite = retry_on_expired_signature(
+        lambda: _composite(config, grid, search(threshold) or items, cfg, index=index),
+        label=f"[{label}] ",
+    )
+    array = composite.values.astype("float32")
 
     gap = float(np.isnan(array).mean())
     valid = array[~np.isnan(array)]
     print(
-        f"  [{label}] {len(items)} sahne -> NDVI medyan {np.median(valid):.3f} "
+        f"  [{label}] {len(items)} sahne -> medyan {np.median(valid):.3f} "
         f"(aralık {valid.min():.3f}..{valid.max():.3f}), boşluk %{100 * gap:.2f}"
     )
     if gap > config["data_sources"]["sentinel2"].get("max_gap_fraction", 0.20):
@@ -89,7 +101,8 @@ def fetch_ndvi_monthly(
 
     filled = np.where(np.isnan(array), config.nodata, array)
     return write_raster(
-        filled, grid, out, nodata=config.nodata, description=f"NDVI medyan kompozit {year}-{month:02d}"
+        filled, grid, out, nodata=config.nodata,
+        description=f"{index.upper()} medyan kompozit {year}-{month:02d}",
     )
 
 
@@ -130,8 +143,11 @@ def _partition_by_baseline(items: list, cfg: dict) -> list[tuple[float, list]]:
     return sorted(groups.items())
 
 
-def _composite(config: Config, grid: TargetGrid, items: list, cfg: dict):
-    """SCL maskeli medyan NDVI (tembel dask hesabı, sonunda compute edilir).
+VALID_INDICES = ("ndvi", "evi")
+
+
+def _composite(config: Config, grid: TargetGrid, items: list, cfg: dict, index: str = "ndvi"):
+    """SCL maskeli medyan bitki örtüsü indeksi (tembel dask, sonunda compute).
 
     Sahneler radyometrik offset'lerine göre ayrı ayrı yüklenir; ancak yansımaya
     çevrildikten SONRA zaman ekseninde birleştirilip medyan alınır. Karışık
@@ -140,10 +156,17 @@ def _composite(config: Config, grid: TargetGrid, items: list, cfg: dict):
     """
     import xarray as xr
 
+    if index not in VALID_INDICES:
+        raise ValueError(f"Bilinmeyen indeks '{index}'. Seçenekler: {VALID_INDICES}")
+
     bands = cfg["bands"]
     chunk = int(cfg.get("chunk_size", 1024))
-    groups = _partition_by_baseline(items, cfg)
+    scale = float(cfg["reflectance_scale"])
+    needed = [bands["red"], bands["nir"], bands["scl"]]
+    if index == "evi":
+        needed.insert(2, bands["blue"])
 
+    groups = _partition_by_baseline(items, cfg)
     if len(groups) > 1:
         summary = ", ".join(f"offset {int(off)}: {len(grp)} sahne" for off, grp in groups)
         print(f"      karışık baseline ({summary})")
@@ -151,34 +174,46 @@ def _composite(config: Config, grid: TargetGrid, items: list, cfg: dict):
     parts = []
     for offset, group in groups:
         ds = load_to_grid(
-            group,
-            [bands["red"], bands["nir"], bands["scl"]],
-            grid,
+            group, needed, grid,
             resampling=cfg["resampling"],
             chunks={"x": chunk, "y": chunk},
             groupby=cfg.get("groupby", "solar_day"),
         )
 
         valid = ~ds[bands["scl"]].isin(cfg["scl_mask_classes"])
-        red = ds[bands["red"]].where(valid).astype("float32") + offset
-        nir = ds[bands["nir"]].where(valid).astype("float32") + offset
+        # Baseline offset uygulanır, ardından GERÇEK YANSIMAYA çevrilir.
+        # NDVI için bölme gereksiz (oran ölçekten bağımsız) ama EVI için
+        # zorunlu: paydasındaki sabit L terimi ölçeğe duyarlıdır.
+        red = (ds[bands["red"]].where(valid).astype("float32") + offset) / scale
+        nir = (ds[bands["nir"]].where(valid).astype("float32") + offset) / scale
 
-        denominator = nir + red
-        # Offset sonrası toplam sıfır veya negatif olabilir (koyu su, gölge);
-        # bu pikseller fiziksel olarak anlamsızdır, atılır.
-        ndvi = (nir - red) / denominator.where(denominator > 0)
-        # L2A yansımaları teorik olarak NDVI'ı [-1, 1] ile sınırlar; dışına taşan
+        if index == "ndvi":
+            denominator = nir + red
+            # Offset sonrası toplam sıfır veya negatif olabilir (koyu su,
+            # gölge); bu pikseller fiziksel olarak anlamsızdır, atılır.
+            values = (nir - red) / denominator.where(denominator > 0)
+        else:
+            blue = (ds[bands["blue"]].where(valid).astype("float32") + offset) / scale
+            coef = cfg["evi_coefficients"]
+            denominator = nir + coef["c1"] * red - coef["c2"] * blue + coef["l"]
+            values = coef["gain"] * (nir - red) / denominator.where(denominator > 0)
+
+        # Her iki indeks de teorik olarak [-1, 1] ile sınırlıdır; dışına taşan
         # değerler atmosferik düzeltme artefaktıdır, atılır.
-        parts.append(ndvi.where((ndvi >= -1) & (ndvi <= 1)))
+        parts.append(values.where((values >= -1) & (values <= 1)))
 
-    ndvi = parts[0] if len(parts) == 1 else xr.concat(parts, dim="time")
-    return getattr(ndvi, cfg["composite_method"])(dim="time").compute()
+    stacked = parts[0] if len(parts) == 1 else xr.concat(parts, dim="time")
+    return getattr(stacked, cfg["composite_method"])(dim="time").compute()
 
 
-def fetch_ndvi_dry_composite(config: Config, grid: TargetGrid, *, overwrite: bool = False) -> Path:
-    """Referans yılların kurak dönem aylarından tek bir medyan NDVI katmanı üretir."""
-    out = interim_path(config, "ndvi_dry.tif")
-    if skip_if_cached(out, overwrite, "NDVI kurak"):
+def fetch_ndvi_dry_composite(
+    config: Config, grid: TargetGrid, *, overwrite: bool = False, index: str | None = None
+) -> Path:
+    """Referans yılların kurak dönem aylarından tek bir medyan indeks katmanı üretir."""
+    index = index or config["data_sources"]["sentinel2"].get("vegetation_index", "ndvi")
+    out = interim_path(config, f"{index}_dry.tif")
+    label = f"{index.upper()} kurak"
+    if skip_if_cached(out, overwrite, label):
         return out
 
     years = config["periods"]["reference_years"]
@@ -186,10 +221,10 @@ def fetch_ndvi_dry_composite(config: Config, grid: TargetGrid, *, overwrite: boo
         config["periods"]["dry_season"]["start_month"],
         config["periods"]["dry_season"]["end_month"],
     )
-    print(f"  [NDVI kurak] {len(years)} yıl x {len(months)} ay = {len(years) * len(months)} aylık kompozit")
+    print(f"  [{label}] {len(years)} yıl x {len(months)} ay = {len(years) * len(months)} aylık kompozit")
 
     paths = [
-        fetch_ndvi_monthly(config, grid, year, month, overwrite=overwrite)
+        fetch_ndvi_monthly(config, grid, year, month, overwrite=overwrite, index=index)
         for year in years
         for month in months
     ]
@@ -199,18 +234,15 @@ def fetch_ndvi_dry_composite(config: Config, grid: TargetGrid, *, overwrite: boo
 
     valid = composite[~np.isnan(composite)]
     print(
-        f"  [NDVI kurak] {len(paths)} aylık kompozitin medyanı: "
+        f"  [{label}] {len(paths)} aylık kompozitin medyanı: "
         f"{valid.min():.3f} - {valid.max():.3f} (medyan {np.median(valid):.3f}), "
         f"boşluk %{100 * np.isnan(composite).mean():.2f}"
     )
 
     filled = np.where(np.isnan(composite), config.nodata, composite)
     return write_raster(
-        filled,
-        grid,
-        out,
-        nodata=config.nodata,
-        description=f"Kurak dönem NDVI medyanı, {years[0]}-{years[-1]}",
+        filled, grid, out, nodata=config.nodata,
+        description=f"Kurak dönem {index.upper()} medyanı, {years[0]}-{years[-1]}",
     )
 
 

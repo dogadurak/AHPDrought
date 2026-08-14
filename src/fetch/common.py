@@ -27,6 +27,56 @@ def stac_client(config: Config):
     return _STAC_CACHE[endpoint]
 
 
+def reset_stac_client() -> None:
+    """İmzalama önbelleğini temizler ve istemciyi yeniden kurmaya zorlar.
+
+    Planetary Computer asset URL'leri süreli SAS imzasıyla verilir (tipik ömür
+    ~1 saat). Sentinel-2 kompoziti gibi saatlerce süren işlerde, iş başladıktan
+    sonra imzalanan URL'lerin süresi iş bitmeden dolar ve okuma
+    "Aborting load due to failure while reading" ile düşer.
+
+    Bu fonksiyon hem istemciyi hem de planetary_computer'ın kendi token
+    önbelleğini sıfırlar; ardından item'lar yeniden aranıp yeniden imzalanır.
+    """
+    _STAC_CACHE.clear()
+    try:
+        import planetary_computer.sas as sas
+
+        cache = getattr(sas, "TOKEN_CACHE", None)
+        if isinstance(cache, dict):
+            cache.clear()
+    except Exception:  # sürüm farkı — istemciyi sıfırlamak yine de yardımcı
+        pass
+
+
+def retry_on_expired_signature(operation, *, attempts: int = 3, label: str = ""):
+    """`operation()` çağrısını, imza süresi dolmuşsa yeniden imzalayıp tekrarlar.
+
+    Args:
+        operation: Argümansız çağrılabilir; her denemede baştan çalıştırılır
+            (item aramasını da içermeli ki yeni imza alsın).
+    """
+    last: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return operation()
+        except Exception as exc:  # rasterio/GDAL hatası tür olarak çeşitlilik gösterir
+            message = str(exc).lower()
+            expired = any(
+                token in message
+                for token in ("aborting load", "403", "authenticat", "signature", "expired")
+            )
+            if not expired or attempt == attempts:
+                raise
+            last = exc
+            print(
+                f"      {label}imza süresi dolmuş görünüyor (deneme {attempt}/{attempts}) — "
+                "yeniden imzalanıp tekrar deneniyor"
+            )
+            reset_stac_client()
+    raise last  # type: ignore[misc]
+
+
 def search_items(
     config: Config,
     collection: str,

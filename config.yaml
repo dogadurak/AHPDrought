@@ -81,8 +81,25 @@ data_sources:
     provider: "planetary_computer"
     collection: "sentinel-2-l2a"
     max_scene_cloud_cover: 20      # sahne düzeyinde ön eleme (%)
-    bands: { red: "B04", nir: "B08", scl: "SCL" }
+    bands: { red: "B04", nir: "B08", blue: "B02", scl: "SCL" }
     native_resolution_m: 10
+
+    # --- BİTKİ ÖRTÜSÜ İNDEKSİ ---
+    # Jia ve ark. (2020, IJERPH 17:7660) EVI'nin kuraklık duyarlılığını
+    # göstermede NDVI'dan bir miktar daha başarılı olduğunu buluyor
+    # (R² 0.61 vs 0.59). Proje ikisini de üretebilir; hangisinin kriter
+    # olacağı buradan seçilir ve iki harita karşılaştırılabilir.
+    vegetation_index: "ndvi"       # ndvi | evi
+    #
+    # DİKKAT — ÖLÇEK TUZAĞI: NDVI bir orandır, dolayısıyla DN ile de
+    # yansıma ile de aynı sonucu verir (ölçek sadeleşir). EVI ise paydasında
+    # SABİT bir terim (L = 1) taşır:
+    #     EVI = G · (NIR − RED) / (NIR + C1·RED − C2·BLUE + L)
+    # Bu yüzden EVI mutlaka GERÇEK YANSIMAYA çevrilmiş değerlerle
+    # hesaplanmalıdır. Ham DN ile hesaplanırsa L terimi ihmal edilebilir
+    # kalır ve EVI sessizce yanlış (NDVI'a benzer ama ölçeksiz) çıkar.
+    reflectance_scale: 10000       # L2A DN -> yansıma böleni
+    evi_coefficients: { gain: 2.5, c1: 6.0, c2: 7.5, l: 1.0 }
     # SCL sınıfları: 0 no-data, 1 saturated, 3 cloud shadow, 7 unclassified,
     # 8 cloud medium, 9 cloud high, 10 thin cirrus, 11 snow/ice
     scl_mask_classes: [0, 1, 3, 7, 8, 9, 10, 11]
@@ -94,7 +111,7 @@ data_sources:
     # yansımadan NDVI" ile "10 m NDVI'ın ortalaması" birebir aynı değildir.
     # Fark küçüktür ve katman zaten göreli olarak normalize edildiğinden
     # kabul edilmiştir (yaygın uygulama).
-    resampling: { B04: "average", B08: "average", SCL: "mode" }
+    resampling: { B04: "average", B08: "average", B02: "average", SCL: "mode" }
     groupby: "solar_day"           # aynı günün bitişik sahnelerini birleştir
     chunk_size: 1024
     # --- BASELINE 04.00 RADYOMETRİK OFFSET UYUMLULAŞTIRMASI ---

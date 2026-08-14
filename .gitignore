@@ -15,6 +15,9 @@ data/interim/**
 !data/**/.gitkeep
 !data/processed/aoi.geojson
 !data/processed/grid_definition.json
+# 68 yıllık havza iklim serisi: 40 KB, ama üretilmesi ~25 dk OPeNDAP isteği
+# demek. Repoda tutmak Adım 10'u yeniden indirmeden çalıştırılabilir kılıyor.
+!data/interim/basin_monthly_climate.csv
 
 # --- Büyük çıktılar ---
 outputs/**/*.tif

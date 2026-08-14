@@ -149,6 +149,95 @@ sınırı önemli: mevcut sulama kriteri OSM'deki kanal ağından türetilen bir
 
 ---
 
+## Kuraklık izleme ve tahmin (Adım 10)
+
+Risk haritası *yapısal duyarlılığı* gösterir. Adım 10 ona zaman boyutu ekler:
+
+```
+RİSK = TEHLİKE (zamanla değişir) × DUYARLILIK (yapısal)
+       ↑ Adım 10                   ↑ AHP haritası
+```
+
+![SPI serisi](outputs/figures/spi_series.png)
+
+**SPI** (McKee ve ark. 1993), TerraClimate'ten çekilen **68 yıllık** (1958–2025)
+yağış serisinden hesaplanıyor. Doğrulama: ortalama −0,000, standart sapma 1,000
+(teorik değerler 0 ve 1). Bağımsız formülasyonlu **PDSI ile r = 0,782**.
+
+Tespit edilen en şiddetli kuraklıklar Türkiye'nin bilinen kurak dönemleriyle
+örtüşüyor: **1989-01–1991-02 (26 ay)**, 2000–2001, 1991–1993, **2007 (11 ay)**.
+
+### Tahmin: dürüst sonuç
+
+| Ufuk | Yöntem | Beceri (iklimatolojiye karşı) |
+|---|---|---:|
+| 1 ay | sönümlü kalıcılık | **+0,395** |
+| 1 ay | kalıcılık | +0,259 |
+| 3 ay | sönümlü kalıcılık | −0,001 |
+| 3 ay | kalıcılık | **−0,964** |
+| 6 ay | kalıcılık | **−1,076** |
+
+**3 ay sonrası için bu yaklaşımla tahmin becerisi yok.** Sebep matematiksel:
+SPI-3'ün 3 aylık gecikme korelasyonu ρ = −0,024 — sıfır. Ay *t* için SPI-3,
+*t−2…t* penceresini toplar; *t+3* için *t+1…t+3*'ü toplar. **İki pencere hiç
+kesişmiyor**, dolayısıyla paylaşılan bilgi yok.
+
+Bu, ayarlanarak düzeltilecek bir sonuç değil; verinin söylediği şey. Saf
+kalıcılığın 3 ve 6 ayda **eksi** beceri vermesi ise daha da öğretici: "bugünkü
+gibi devam edecek" demek, o ufukta hiçbir şey dememekten *kötüdür*.
+
+Gerçek 3 aylık tahmin için dinamik mevsimsel iklim öngörüsü (ECMWF SEAS5,
+NOAA CFSv2) gerekir — bunlar ücretsiz ama Copernicus CDS kaydı/API anahtarı
+istediği için projenin "anahtarsız" kısıtını kırar.
+
+### İzleme: mekânsal anomali
+
+![NDVI anomalisi](outputs/figures/ndvi_anomaly_2024.png)
+
+2024 kurak dönem NDVI'ı, diğer 5 yıla göre z-skoru olarak. Taban çizgisi hedef
+yılı **dışlar** (leave-one-out): dahil edilseydi yıl kendi ortalamasını kendine
+çeker ve anomali sistematik olarak küçük çıkardı — 5 yıllık bir tabanda bu etki
+büyüktür.
+
+Arazi örtüsüne göre ortalama anomali fiziksel olarak tutarlı: mera (−0,378) >
+çıplak (−0,273) > tarım (−0,224) > çalılık (−0,093) > orman (−0,071). Sulanan
+tarım ve derin köklü orman en az etkilenen, yağışa bağlı mera en çok.
+
+### Risk haritasının operasyonel sınaması — DOĞRULANMADI
+
+| Risk sınıfı | 2024 NDVI anomalisi (z) |
+|---|---:|
+| Çok düşük | −0,167 |
+| Düşük | −0,199 |
+| Orta | −0,158 |
+| Yüksek | −0,211 |
+| Çok yüksek | **−0,292** |
+
+Uçlar doğru yönde (sınıf 5 < sınıf 1) ama sıralama monoton değil ve Spearman
+ρ = −0,096, yani zayıf. **Bunu geçirmek için ayar yapmadım.** İki katman farklı
+şeyler ölçüyor: risk haritası 6 yıllık ortalamaya dayanan *yapısal* bir indeks
+("burası kronik olarak dayanıksız"), anomali ise tek yılın kendi geçmişine göre
+sapması ("bu yıl normalinden ne kadar saptı"). Yapısal olarak kurak bir alan
+zaten her yıl kuraktır; kendi normaline göre sapması büyük olmak zorunda değil.
+
+Güçlü sınama, birden çok kurak yılın anomali ortalamasıyla ya da doğrudan verim
+verisiyle yapılır.
+
+## NDVI mi EVI mi?
+
+Jia ve ark. (2020) EVI'nin kuraklık duyarlılığını göstermede NDVI'dan biraz
+daha başarılı olduğunu buluyor. Bu havza için sınandı:
+
+| | NDVI | EVI |
+|---|---:|---:|
+| Bağımsız ET/PET ile ρ (ham katman) | **+0,647** | +0,618 |
+| Bağımsız ET/PET ile ρ (risk haritası) | **−0,331** | −0,283 |
+
+İki indeks ρ = 0,956 korelasyonlu; risk haritaları %87,2 aynı sınıfta, %100'ü
+en fazla 1 sınıf kayıyor. **Bu havzada indeks seçimi belirleyici değil ve
+NDVI biraz daha uyumlu** — literatürdeki genel bulgu burada geçerli çıkmadı.
+`vegetation_index: ndvi | evi` ile değiştirilebilir.
+
 ## Yöntem notları
 
 - **Bakı dairesel bir değişkendir.** 0–360° doğrudan normalize edilemez (359° ile
@@ -285,8 +374,20 @@ python -m scripts.step06_ndvi_timeseries
 # Adım 7 — Doğrulama raporu
 python -m scripts.step07_validate
 
+# Adım 10 — Kuraklık izleme ve tahmin
+python -m scripts.step10_forecast --fetch    # 68 yıllık seriyi indir (~25 dk)
+python -m scripts.step10_forecast
+
+# NDVI/EVI karşılaştırması
+python -m scripts.compare_vegetation_index
+
+# Grup AHP anketi
+python -m scripts.ahp_survey template --out surveys --experts 5
+python -m scripts.ahp_survey aggregate surveys/*.csv
+
 # Testler
-pytest
+pytest                    # hepsi
+pytest -m "not network"   # dış servise bağlanmadan
 ```
 
 Her katman `data/interim/` altına yazılır ve dosya varsa atlanır; uzun süren
