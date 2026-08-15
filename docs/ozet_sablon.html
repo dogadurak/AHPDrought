@@ -159,6 +159,13 @@
     color: var(--muted); font-weight: 600; border-bottom-color: var(--rule);
   }
   td.num, th.num { text-align: right; padding-right: 0; }
+  /* th uppercase; ama Yunan kucuk rho buyudugunde Latin P'den ayirt
+     edilemiyor. Sembol kendi kutusunda kucuk kalir. */
+  th .sym { text-transform: none; }
+  /* Saga yasli sayi hucresinin sag dolgusu 0; genel kural da sol dolguyu 0
+     birakiyor. Ikisi yan yana gelince sayi bir sonraki hucrenin metnine
+     yapisiyordu ("+0,050Degismedi"). Bosluk burada acilir. */
+  td.num + td, th.num + th { padding-left: 18px; }
   tbody tr:last-child td { border-bottom: none; }
   .good { color: var(--pass); font-weight: 600; }
   .bad  { color: var(--fail); font-weight: 600; }
@@ -189,6 +196,86 @@
   }
   code { font-size: 13.5px; background: var(--rule-soft); padding: 1px 5px; border-radius: 2px; }
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+  /* ---- Baskı / PDF -------------------------------------------------------
+     Üç şey gerekiyor:
+     1. Koyu tema baskıda anlamsız — açık palet zorlanır.
+     2. Tarayıcılar arka plan rengini varsayılan olarak BASMAZ; hüküm şeritleri
+        ve etiketler kaybolur. print-color-adjust: exact bunu geri getirir.
+     3. Kartlar ve görseller sayfa ortasından bölünmemeli. */
+  @page { size: A4; margin: 16mm 14mm; }
+
+  @media print {
+    :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+      color-scheme: light;
+      --ground:    #ffffff;
+      --surface:   #ffffff;
+      --plate:     #ffffff;
+      --ink:       #14140f;
+      --ink-2:     #45443f;
+      --muted:     #6f6d67;
+      --rule:      #cfcec6;
+      --rule-soft: #e6e5de;
+      --pass:      #1c5cab;
+      --fail:      #a12c24;
+      --hold:      #8a6104;
+      --pass-wash: #eaf1fb;
+      --fail-wash: #fbecea;
+      --hold-wash: #f8f1de;
+      --shadow:    none;
+    }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    body { font-size: 10.5pt; line-height: 1.5; }
+    .wrap { max-width: none; padding: 0; }
+    .col { max-width: none; }
+
+    header { padding: 0 0 14pt; }
+    h1 { font-size: 24pt; max-width: none; }
+    .lede { font-size: 12pt; }
+    section { padding-top: 22pt; break-before: auto; }
+    h2 { font-size: 9pt; margin-bottom: 12pt; break-after: avoid; }
+    h3 { font-size: 13pt; break-after: avoid; }
+
+    /* Bir kart ya da görsel sayfa ortasında ikiye bölünmesin */
+    .finding, figure, .note, .kpis, table { break-inside: avoid; }
+    /* Baslik tek basina sayfa dibinde kalmasin; numarali listeler bolunmesin
+       (madde 1 bir sayfada, 2-5 digerinde okunmuyor). */
+    h2, h3 { break-after: avoid; }
+    .col ol, .col ul { break-inside: avoid; }
+    tr, li { break-inside: avoid; }
+    figcaption { break-before: avoid; }
+
+    /* Baskida dikey ritim ekranda oldugundan sikidir: ekranda bosluk
+       nefes aldirir, basili sayfada blogu bir sonraki sayfaya iter ve
+       arkasinda yarim sayfa bosluk birakir. Olculen tasmalar 40-120px
+       araligindaydi; asagidaki kisintilar tam o araligi kapatiyor. */
+    header { padding: 0 0 26px; }
+    section { padding-top: 26px; }
+    h2 { margin-bottom: 14px; }
+    figure { margin-bottom: 18px; }
+    .finding { padding: 20px 22px; margin-bottom: 16px; }
+    .note { padding: 18px 22px; }
+    .kpis { margin-top: 26px; }
+    .wrap { padding-bottom: 0; }
+    .plate { padding: 0; border-color: var(--rule); }
+    /* Görsel yüksekliği bilinçli olarak sınırlı: `break-inside: avoid` ile
+       birlikte çok yüksek görseller sayfa başına tek başına düşüyor ve
+       altta yarım sayfa boşluk bırakıyordu. 104 mm'de bir görsel + açıklama
+       + bir bulgu kartı aynı sayfaya sığıyor. Çok panelli görseller
+       (.tall) daha fazla yer alır, yoksa okunmaz hale gelirler. */
+    .plate img { max-height: 92mm; width: auto; max-width: 100%; margin: 0 auto; }
+    .plate.tall img { max-height: 138mm; }
+    .grid2 { display: block; }
+    .grid2 figure { margin-bottom: 18pt; }
+
+    .kpis { grid-template-columns: repeat(5, 1fr); }
+    .kpi b { font-size: 17pt; }
+    .kpi span { font-size: 8pt; }
+
+    footer { margin-top: 24pt; }
+    a { color: var(--ink); text-decoration: none; }
+  }
 </style>
 
 <div class="wrap">
@@ -301,7 +388,7 @@
   </div>
 
   <figure>
-    <div class="plate"><img src="{{spi_series.png}}" alt="1958-2025 arası SPI-3, SPI-6 ve SPI-12 serileri"></div>
+    <div class="plate tall"><img src="{{spi_series.png}}" alt="1958-2025 arası SPI-3, SPI-6 ve SPI-12 serileri"></div>
     <figcaption><b>68 yıllık kuraklık kaydı.</b> SPI-12 panelinde 1988–94 ve 2007–08 kuraklıkları açıkça görülüyor. Kırmızı kurak, mavi nemli.</figcaption>
   </figure>
 
@@ -352,7 +439,7 @@
   </div>
   <div class="scroll">
     <table>
-      <thead><tr><th>Kontrol</th><th>Ne değiştirildi</th><th class="num">Kurak yıl ρ</th><th>Sonuç</th></tr></thead>
+      <thead><tr><th>Kontrol</th><th>Ne değiştirildi</th><th class="num">Kurak yıl <span class="sym">ρ</span></th><th>Sonuç</th></tr></thead>
       <tbody>
         <tr><td>Etki ölçüsü</td><td>NDVI → ET/PET (su kısıtı)</td><td class="num">+0,050</td><td>Değişmedi</td></tr>
         <tr><td>Sensör ve dönem</td><td>Sentinel-2 → Landsat 5 → MODIS</td><td class="num">−0,021</td><td>Değişmedi</td></tr>
@@ -441,7 +528,7 @@
   </div>
 
   <figure>
-    <div class="plate"><img src="{{criteria_panel_steep_riskier.png}}" alt="Dokuz normalize kriter katmanı"></div>
+    <div class="plate tall"><img src="{{criteria_panel_steep_riskier.png}}" alt="Dokuz normalize kriter katmanı"></div>
     <figcaption><b>Dokuz kriter, ortak 0–1 ölçeğinde.</b> Sulama paneli Gediz kanal koridorunu, eğim paneli Bozdağlar'ı, yağış paneli CHIRPS'in 5,5 km'lik hücrelerini açıkça gösteriyor.</figcaption>
   </figure>
 

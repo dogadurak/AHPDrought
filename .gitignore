@@ -30,6 +30,10 @@ outputs/**/*.zarr/
 # Animasyonun ara kareleri repoya girmesin (GIF'in kendisi girer)
 outputs/figures/_frames/
 
+# Özet sayfasının tek dosyalık HTML'i: görselleri base64 gömülü, 4,2 MB.
+# Paylaşılan çıktı PDF; HTML her çalıştırmada şablondan yeniden üretilir.
+outputs/reports/*.html
+
 # osmnx'in Overpass yanıt önbelleği (proje kökünde açılır, ~7 MB)
 cache/
 
