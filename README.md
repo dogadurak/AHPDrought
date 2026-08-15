@@ -269,6 +269,48 @@ Düz. Sıralama yok. Yıl bazında korelasyonlar rastgele işaret değiştiriyor
 öngörmüyor.** Ayarlanarak geçirilmedi; aksine sınama giderek daha adil
 kuruldu ve sonuç değişmedi.
 
+#### İki bağımsız etki ölçüsü, aynı cevap
+
+Sonucun "yanlış ölçü seçtik" diye açıklanabilmesini engellemek için sınama,
+tamamen farklı bir etki ölçüsüyle tekrarlandı:
+
+| Etki ölçüsü | Sensör | Dönem | Kurak yıl | Kurak yıl ρ |
+|---|---|---|---:|---:|
+| NDVI (yeşillik) | Landsat 5, 30 m | 1985–2011 | 7 | −0,021 |
+| **ET/PET (su kısıtı)** | MODIS, 500 m | 2000–2024 | 3 | +0,050 |
+
+ET/PET, NDVI'nın aksine sulamayla maskelenmez — su kısıtını doğrudan ölçer.
+Ve **ölçü çalışıyor**: kurak yıllarda havza ortalaması doğru şekilde negatif
+(2001: −0,033 · 2007: −0,058 · 2008: −0,029), yaş yıllarda pozitif. Yani
+ET/PET kuraklığı görüyor — sadece **risk haritasının mekânsal deseniyle
+ilişkilendiremiyor**.
+
+Bu, "NDVI yanlış ölçüydü" açıklamasını eler.
+
+#### Test edilen ve reddedilen açıklama
+
+Kriterlerin havzadaki **gerçek** değişkenliği ölçüldü:
+
+| Kriter | Ağırlık | Gerçek aralık | Göreli yayılım |
+|---|---:|---|---:|
+| Yağış | 0,213 | 20–48 mm | 0,84 |
+| Toprak su kapasitesi | 0,134 | 0,092–0,134 cm³/cm³ | **0,36** |
+| LST | 0,112 | 30,5–43,7 °C | **0,34** |
+| Sulama mesafesi | 0,178 | 0,6–29 km | 3,08 |
+| Eğim | 0,043 | 0,2–30° | 2,95 |
+
+Ağırlığın **%46'sı**, havzada neredeyse hiç değişmeyen üç kriterde. Yüzdelik
+normalizasyon bunların küçük gerçek farkını 0–1 aralığına geriyor: 4.800 km²'de
+28 mm'lik yağış farkı, 29 km'lik sulama mesafesi farkıyla eşit muamele görüyor.
+
+**Hipotez:** harita bu yüzden ayrım üretemiyor.
+**Sınama:** yalnızca gerçekten değişen kriterlerle (sulama, NDVI, arazi örtüsü,
+su mesafesi, eğim, bakı) yeniden ağırlıklandırılmış harita kuruldu.
+**Sonuç:** kurak yıl ortalama ρ −0,021 → **+0,033**. Düzelmedi, hatta işareti
+ters döndü. **Hipotez reddedildi.**
+
+Düşük değişkenlik teşhisi doğru, ama başarısızlığın sebebi o değil.
+
 #### Bu neden bir katkı, kusur değil
 
 Model iç tutarlılık ölçütlerinin hepsini geçiyor: CR = 0,0093, k-means uyumu
@@ -277,15 +319,23 @@ büyük kısmı **tam da burada durur** — duyarlılık analizi yapılır, göz
 etkiyle karşılaştırma yapılmaz. Bu proje o adımı attı ve olumsuz sonucu
 raporluyor.
 
-Üç somut çıkarım:
+Dört somut çıkarım:
 
 1. **İç tutarlılık, geçerlilik değildir.** CR, k-means ve duyarlılık analizinin
    hepsini geçen bir harita, gözlenen etkiyi öngörmeyebilir.
-2. **Sulanan havzada NDVI, kuraklık etkisinin ölçüsü değildir** (yukarıdaki
-   3–10 kat farkı hatırlayın). Etki suya ve maliyete yansıyor.
-3. **Doğrulama, uydu arşivinin kapsadığı dönemle sınırlıdır.** Bu havzanın
+2. **Sonuç ölçü seçimine bağlı değil.** İki bağımsız etki ölçüsü (yeşillik ve
+   su kısıtı), iki farklı sensör, iki farklı dönem — aynı cevap.
+3. **Sonuç kriter seçimine de bağlı değil.** Neredeyse sabit kriterleri çıkarıp
+   yeniden ağırlıklandırmak düzeltmedi.
+4. **Doğrulama, uydu arşivinin kapsadığı dönemle sınırlıdır.** Bu havzanın
    gerçek kuraklıkları Sentinel-2'den önce; Landsat olmasa test hiç
    yapılamazdı.
+
+**Geriye kalan en makul açıklama** (bu projede sınanamadı): 30 m ölçekte
+kuraklık etkisini belirleyen şey, fiziksel duyarlılıktan çok **parsel düzeyi
+yönetim kararlarıdır** — hangi ürün ekildiği, sulanıp sulanmadığı, kuyu erişimi.
+Bunlar hiçbir fiziksel duyarlılık haritasının yakalayamayacağı değişkenler ve
+ölçmek için çiftlik düzeyi veri gerekir.
 
 #### Bu sınamanın kendi sınırlılıkları
 

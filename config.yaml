@@ -276,6 +276,11 @@ data_sources:
     assets: { actual: "ET_500m", potential: "PET_500m" }
     scale_factor: 0.1              # kg/m2/yıl = mm/yıl
     fill_threshold: 32700          # bu değerin üstü dolgu/geçersiz
+    # Yıl bazında seri (Adım 14): NDVI'ya alternatif ETKİ ÖLÇÜSÜ.
+    # NDVI sulanan parselde kuraklıkta da yüksek kalır; ET/PET su kısıtını
+    # doğrudan ölçer. Kapsanan kurak yıllar: 2001, 2007, 2008, 2014, 2021.
+    yearly_start: 2000
+    yearly_end: 2024
 
 # -----------------------------------------------------------------------------
 # KRİTERLER (Adım 3)

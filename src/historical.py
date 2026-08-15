@@ -46,21 +46,38 @@ from .grid import TargetGrid, read_grid_aligned
 
 MIN_BASELINE_YEARS = 10
 
+# Etki ölçüsü kaynakları: (klasör, dosya öneki, açıklama)
+#
+# NDVI ve ET/PET FARKLI ŞEYLER ölçer ve bu ayrım projenin can alıcı noktası:
+#   ndvi  — yeşillik. Sulanan parselde kuraklıkta da yüksek kalır (çiftçi sular).
+#   et    — gerçekleşen/potansiyel buharlaşma, yani SU KISITI. Sulama bu ölçüyü
+#           maskelemez; sulanan parsel suyu fiilen kullanır ve oran yüksek kalır,
+#           su bulamayan parselde düşer.
+#
+# Harita ET/PET anomalisini öngörüp NDVI anomalisini öngörmüyorsa, sorun
+# haritada değil ölçüdedir.
+IMPACT_SOURCES = {
+    "ndvi": ("landsat_ndvi", "ndvi", "Landsat 5 NDVI (yeşillik)"),
+    "et": ("et_yearly", "et_pet", "MODIS ET/PET (su kısıtı)"),
+}
 
-def available_years(config: Config) -> list[int]:
-    """Üretilmiş Landsat yıllık kompozitleri."""
-    directory = interim_path(config, "landsat_ndvi", "x").parent
+
+def available_years(config: Config, source: str = "ndvi") -> list[int]:
+    """Üretilmiş yıllık etki katmanlarının yılları."""
+    folder, prefix, _ = IMPACT_SOURCES[source]
+    directory = interim_path(config, folder, "x").parent
     years = []
-    for path in sorted(directory.glob("ndvi_*.tif")):
+    for path in sorted(directory.glob(f"{prefix}_*.tif")):
         try:
-            years.append(int(path.stem.split("_")[1]))
+            years.append(int(path.stem.rsplit("_", 1)[1]))
         except (IndexError, ValueError):
             continue
     return years
 
 
-def _layer(config: Config, grid: TargetGrid, year: int) -> np.ndarray:
-    path = interim_path(config, "landsat_ndvi", f"ndvi_{year}.tif")
+def _layer(config: Config, grid: TargetGrid, year: int, source: str = "ndvi") -> np.ndarray:
+    folder, prefix, _ = IMPACT_SOURCES[source]
+    path = interim_path(config, folder, f"{prefix}_{year}.tif")
     array = read_grid_aligned(path, grid).astype("float32")
     return np.where(array == np.float32(config.nodata), np.nan, array)
 
@@ -72,21 +89,22 @@ def landsat_anomaly(
     *,
     years: list[int] | None = None,
     standardize: bool = False,
+    source: str = "ndvi",
 ) -> np.ndarray:
-    """Bir yılın, Landsat döneminin geri kalanına göre NDVI anomalisi.
+    """Bir yılın, kendi döneminin geri kalanına göre etki anomalisi.
 
-    Taban çizgisi hedef yılı DIŞLAR (leave-one-out) ve yalnızca Landsat
-    yıllarından oluşur — Sentinel dönemiyle karıştırılmaz.
+    Taban çizgisi hedef yılı DIŞLAR (leave-one-out) ve yalnızca aynı kaynağın
+    yıllarından oluşur — farklı sensör dönemleri karıştırılmaz.
     """
-    years = years or available_years(config)
+    years = years or available_years(config, source)
     baseline_years = [y for y in years if y != year]
     if len(baseline_years) < MIN_BASELINE_YEARS:
         raise ValueError(
             f"Taban çizgisi {len(baseline_years)} yıl — en az {MIN_BASELINE_YEARS} gerekir"
         )
 
-    target = _layer(config, grid, year)
-    baseline = np.stack([_layer(config, grid, y) for y in baseline_years])
+    target = _layer(config, grid, year, source)
+    baseline = np.stack([_layer(config, grid, y, source) for y in baseline_years])
     mean = np.nanmean(baseline, axis=0)
     difference = target - mean
 
@@ -119,14 +137,15 @@ def historical_test(
     *,
     dry_threshold: float = -1.0,
     landcover_code: int | None = 40,
+    source: str = "ndvi",
 ) -> dict:
     """Landsat döneminde risk–etki ilişkisini kurak ve normal yıllarda ölçer."""
     from .monitor import ANOMALY_CLASSES  # noqa: F401  (eşik uyumu için)
     from .validate import rank_correlation
 
-    years = available_years(config)
+    years = available_years(config, source)
     if len(years) < MIN_BASELINE_YEARS + 1:
-        raise RuntimeError(f"Yalnızca {len(years)} Landsat yılı var")
+        raise RuntimeError(f"Yalnızca {len(years)} yıl var ({source})")
 
     severity = severity_index(spi12, years)
     mask = None
@@ -136,7 +155,7 @@ def historical_test(
 
     rows = []
     for year in years:
-        anomaly = landsat_anomaly(config, grid, year, years=years)
+        anomaly = landsat_anomaly(config, grid, year, years=years, source=source)
         if mask is not None:
             anomaly = np.where(mask, anomaly, np.nan).astype("float32")
 
@@ -172,6 +191,8 @@ def historical_test(
         "normal_rho": float(np.mean([r["rho"] for r in normal])) if normal else float("nan"),
         "threshold": dry_threshold,
         "landcover_code": landcover_code,
+        "source": source,
+        "source_label": IMPACT_SOURCES[source][2],
     }
 
 
@@ -193,6 +214,8 @@ def summarize(config: Config, result: dict) -> str:
 
     labels = config["classification"]["labels"]
     lines = [
+        f"Etki ölçüsü: {result.get('source_label', 'NDVI')}",
+        "",
         f"{'Yıl':<7}{'SPI-12':>9}{'durum':>9}{'ort. anomali':>15}{'risk-anomali ρ':>17}{'monoton':>10}",
         "-" * 67,
     ]

@@ -36,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fetch", action="store_true", help="Landsat serisini indir")
     parser.add_argument("--dry-threshold", type=float, default=-1.0,
                         help="Kurak dönem SPI-12 bu değerin altındaki yıllar 'kurak'")
+    parser.add_argument("--impact", default="ndvi", choices=("ndvi", "et"),
+                        help="Etki ölçüsü: ndvi (Landsat yeşillik) | et (MODIS su kısıtı)")
     parser.add_argument("--landcover-code", type=int, default=40,
                         help="Adil karşılaştırma için sınıf (40 = Cropland, 0 = hepsi)")
     args = parser.parse_args(argv)
@@ -52,7 +54,7 @@ def main(argv: list[str] | None = None) -> int:
 
         fetch_landsat_series(config, grid)
 
-    years = available_years(config)
+    years = available_years(config, args.impact)
     if len(years) < 11:
         raise SystemExit(
             f"Yalnızca {len(years)} Landsat yılı üretilmiş. Önce:\n"
@@ -74,7 +76,7 @@ def main(argv: list[str] | None = None) -> int:
 
     result = historical_test(
         config, grid, risk, classes, spi12,
-        dry_threshold=args.dry_threshold, landcover_code=landcover,
+        dry_threshold=args.dry_threshold, landcover_code=landcover, source=args.impact,
     )
 
     print("\n" + _indent(summarize(config, result)))
@@ -88,7 +90,7 @@ def _indent(text: str, prefix: str = "    ") -> str:
 
 
 def _write_report(config, result, years) -> None:
-    out = resolve(config["paths"]["reports"]) / "historical_test.md"
+    out = resolve(config["paths"]["reports"]) / f"historical_test_{result['source']}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     labels = config["classification"]["labels"]
 
