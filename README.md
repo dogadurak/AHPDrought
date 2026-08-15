@@ -10,6 +10,11 @@ haritası, duyarlılık analizi ve NDVI zaman serisi görselleştirmesi.
 
 ![Kuraklık risk haritası](outputs/figures/risk_map_steep_riskier.png)
 
+> **📊 Görsel özet:** Bütün bulgular tek sayfada —
+> [claude.ai/code/artifact/169dfe78-f7a6-400b-bc4d-b4101939202a](https://claude.ai/code/artifact/169dfe78-f7a6-400b-bc4d-b4101939202a)
+> (şablon: [`docs/ozet_sablon.html`](docs/ozet_sablon.html), grafikler:
+> [`src/visualize_summary.py`](src/visualize_summary.py))
+
 ---
 
 ## Sonuçlar

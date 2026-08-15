@@ -1,0 +1,481 @@
+<title>Gediz Kuraklık Doğrulaması</title>
+<style>
+  /* ---- Renk sistemi -------------------------------------------------------
+     Projenin kendi doğrulanmış veri-görselleştirme paletinden türetildi, ki
+     sayfa ile matplotlib çıktıları tek bir sistem gibi okunsun.
+     Açık tema tam olarak burada tanımlı; koyu tema yalnızca token'ları
+     yeniden tanımlar. Hiçbir renk sadece media/[data-theme] içinde yaşamaz. */
+  :root {
+    color-scheme: light;
+    --ground:      #f5f4f0;
+    --surface:     #fcfcfb;
+    --plate:       #fcfcfb;
+    --ink:         #191813;
+    --ink-2:       #52514e;
+    --muted:       #898781;
+    --rule:        #e1e0d9;
+    --rule-soft:   #ecebe4;
+    --pass:        #2a78d6;
+    --fail:        #cc4234;
+    --hold:        #b07c05;
+    --pass-wash:   #eaf1fb;
+    --fail-wash:   #fbecea;
+    --hold-wash:   #f8f1de;
+    --shadow:      0 1px 2px rgba(25,24,19,.05), 0 8px 24px rgba(25,24,19,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground:    #131311;
+      --surface:   #1c1c1a;
+      --plate:     #f2f1ec;
+      --ink:       #f1f0ea;
+      --ink-2:     #bcbab1;
+      --muted:     #8f8d85;
+      --rule:      #2e2e2b;
+      --rule-soft: #232321;
+      --pass:      #5598e7;
+      --fail:      #e37b68;
+      --hold:      #d9a441;
+      --pass-wash: #16233a;
+      --fail-wash: #33201c;
+      --hold-wash: #2e2718;
+      --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground:    #131311;
+    --surface:   #1c1c1a;
+    --plate:     #f2f1ec;
+    --ink:       #f1f0ea;
+    --ink-2:     #bcbab1;
+    --muted:     #8f8d85;
+    --rule:      #2e2e2b;
+    --rule-soft: #232321;
+    --pass:      #5598e7;
+    --fail:      #e37b68;
+    --hold:      #d9a441;
+    --pass-wash: #16233a;
+    --fail-wash: #33201c;
+    --hold-wash: #2e2718;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+
+  /* ---- Tipografi ----------------------------------------------------------
+     Gövde sistem sans. Her SAYI, etiket ve hüküm monospace: bu sayfanın özü
+     ölçüm, tipografi de onu taşımalı. */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font: 400 17px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono, .stat b, .chip, th, td.num, .kpi b, code {
+    font-family: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px 96px; }
+  .col  { max-width: 68ch; }
+
+  /* ---- Başlık ---- */
+  header { padding: 72px 0 40px; border-bottom: 1px solid var(--rule); }
+  .eyebrow {
+    font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+    font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(30px, 4.6vw, 46px); line-height: 1.12; font-weight: 650;
+    letter-spacing: -.02em; margin: 0 0 20px; text-wrap: balance; max-width: 20ch;
+  }
+  .lede { font-size: 20px; line-height: 1.55; color: var(--ink-2); margin: 0; max-width: 60ch; }
+
+  .kpis {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+    margin: 40px 0 0; border-radius: 3px; overflow: hidden;
+  }
+  .kpi { background: var(--surface); padding: 18px 20px; }
+  .kpi b { display: block; font-size: 27px; font-weight: 600; letter-spacing: -.02em; }
+  .kpi span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+  .kpi.is-pass b { color: var(--pass); }
+  .kpi.is-fail b { color: var(--fail); }
+
+  /* ---- Bölümler ---- */
+  section { padding-top: 64px; }
+  h2 {
+    font-size: 13px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted); margin: 0 0 26px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+    font-family: ui-monospace, "Cascadia Mono", Menlo, monospace;
+  }
+  h3 { font-size: 22px; font-weight: 620; letter-spacing: -.01em; margin: 0 0 12px; text-wrap: balance; }
+  p { margin: 0 0 16px; }
+  .col p, .col ul, .col ol { max-width: 68ch; }
+  ul, ol { padding-left: 22px; margin: 0 0 16px; }
+  li { margin-bottom: 8px; }
+  strong { font-weight: 620; }
+  a { color: var(--pass); }
+
+  /* ---- Bulgu kartları: sol şerit hükmü taşır -----------------------------
+     Bu dekor değil — her bulgunun gerçekten bir hükmü var. */
+  .finding {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 4px solid var(--rule); border-radius: 3px;
+    padding: 26px 28px; margin-bottom: 20px; box-shadow: var(--shadow);
+  }
+  .finding.pass { border-left-color: var(--pass); }
+  .finding.fail { border-left-color: var(--fail); }
+  .finding.hold { border-left-color: var(--hold); }
+  .fhead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+  .chip {
+    font-size: 11px; letter-spacing: .1em; text-transform: uppercase; font-weight: 600;
+    padding: 4px 9px; border-radius: 2px; white-space: nowrap;
+  }
+  .chip.pass { background: var(--pass-wash); color: var(--pass); }
+  .chip.fail { background: var(--fail-wash); color: var(--fail); }
+  .chip.hold { background: var(--hold-wash); color: var(--hold); }
+  .finding h3 { margin: 0; flex: 1 1 320px; }
+  .finding p:last-child { margin-bottom: 0; }
+
+  .stat {
+    display: flex; gap: 28px; flex-wrap: wrap; margin: 18px 0;
+    padding: 14px 0; border-top: 1px solid var(--rule-soft); border-bottom: 1px solid var(--rule-soft);
+  }
+  .stat div { min-width: 108px; }
+  .stat b { display: block; font-size: 21px; font-weight: 600; letter-spacing: -.02em; }
+  .stat span { font-size: 12px; color: var(--muted); }
+
+  /* ---- Tablolar ---- */
+  .scroll { overflow-x: auto; margin: 0 0 20px; }
+  table { border-collapse: collapse; width: 100%; font-size: 14.5px; min-width: 460px; }
+  th, td { padding: 9px 14px 9px 0; text-align: left; border-bottom: 1px solid var(--rule-soft); }
+  th {
+    font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; border-bottom-color: var(--rule);
+  }
+  td.num, th.num { text-align: right; padding-right: 0; }
+  tbody tr:last-child td { border-bottom: none; }
+  .good { color: var(--pass); font-weight: 600; }
+  .bad  { color: var(--fail); font-weight: 600; }
+
+  /* ---- Görsel plakaları --------------------------------------------------
+     matplotlib çıktılarının zemini açık; koyu temada parlak dikdörtgen gibi
+     durmasın diye bilinçli olarak "basılı plaka" gibi çerçeveleniyorlar. */
+  figure { margin: 0 0 32px; }
+  .plate {
+    background: var(--plate); border: 1px solid var(--rule);
+    border-radius: 3px; padding: 10px; box-shadow: var(--shadow);
+  }
+  .plate img { display: block; width: 100%; height: auto; border-radius: 1px; }
+  figcaption { font-size: 13.5px; color: var(--muted); margin-top: 10px; max-width: 72ch; }
+  figcaption b { color: var(--ink-2); font-weight: 600; }
+
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 28px; }
+
+  .note {
+    background: var(--surface); border: 1px solid var(--rule); border-radius: 3px;
+    padding: 22px 26px; margin: 0 0 20px;
+  }
+  .note p:last-child { margin-bottom: 0; }
+
+  footer {
+    margin-top: 80px; padding-top: 28px; border-top: 1px solid var(--rule);
+    font-size: 13.5px; color: var(--muted);
+  }
+  code { font-size: 13.5px; background: var(--rule-soft); padding: 1px 5px; border-radius: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Gediz Havzası · 4.842 km² · 30 m · 2017–2025</p>
+  <h1>Kuraklık risk haritası gerçekten işe yarıyor mu?</h1>
+  <p class="lede">
+    Dokuz kriterli bir AHP risk haritası kuruldu, tüm iç tutarlılık ölçütlerini
+    geçti — sonra gözlenen kuraklık etkisiyle karşılaştırıldı. Tahmin tarafı
+    çalışıyor. Haritanın mekânsal sıralaması çalışmıyor. İkisi de sağlam.
+  </p>
+
+  <div class="kpis">
+    <div class="kpi is-pass"><b>+0,445</b><span>Mevsimsel öngörü becerisi<br>68 yıl, iki taban çizgisi</span></div>
+    <div class="kpi is-fail"><b>−0,021</b><span>Risk–etki korelasyonu<br>7 kurak yıl, ρ ≈ 0</span></div>
+    <div class="kpi"><b>0,0093</b><span>AHP tutarlılık oranı<br>eşik 0,10</span></div>
+    <div class="kpi"><b>12</b><span>Bulunup düzeltilen<br>sessiz veri hatası</span></div>
+    <div class="kpi"><b>291</b><span>Geçen test<br>ağa bağlanmadan</span></div>
+  </div>
+</header>
+
+<section>
+  <h2>Sistem ne yapıyor</h2>
+  <div class="col">
+    <p>
+      Dokuz açık veri katmanı — yağış, sulama erişimi, NDVI, toprak su kapasitesi,
+      yüzey sıcaklığı, arazi örtüsü, su mesafesi, eğim, bakı — ortak 30 m grid'e
+      indirgeniyor, AHP ağırlıklarıyla çakıştırılıyor ve 5 risk sınıfına ayrılıyor.
+      Üstüne 68 yıllık yağış serisinden SPI, mevsimsel öngörü ve anomali izleme
+      ekleniyor.
+    </p>
+    <p>
+      Hiçbir kaynak API anahtarı gerektirmiyor. Her ağırlık, eşik ve renk tek bir
+      <code>config.yaml</code> içinde; kodda sabit sayı yok.
+    </p>
+  </div>
+
+  <figure style="margin-top:32px">
+    <div class="plate"><img src="{{risk_map_steep_riskier.png}}" alt="Gediz Havzası kuraklık risk haritası, beş sınıf"></div>
+    <figcaption><b>Risk haritası.</b> Demirköprü rezervuarı ve yerleşimler maskeli. Sınıf dağılımı %12,9 / %24,3 / %29,4 / %22,5 / %11,0; bağımsız k-means sınıflandırmasıyla %100 uyum.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Bulgular</h2>
+
+  <div class="finding pass">
+    <div class="fhead"><span class="chip pass">Doğrulandı</span><h3>Üç ay sonrası öngörülebiliyor — doğru soru sorulursa</h3></div>
+    <p>
+      İlk soru mekanikti: “SPI-3'ten üç ay sonraki SPI-3.” Beceri çıkmadı, çünkü
+      iki SPI-3 penceresi <strong>hiç kesişmiyor</strong> — paylaşılacak bilgi yok.
+      Bu bir veri bulgusu değil, kötü kurulmuş bir soruydu.
+    </p>
+    <p>
+      Fiziksel soru farklı: Gediz'de temmuz–ağustos yağışı 8 mm, kış 121 mm.
+      Yaz bitki örtüsünü o yazki yağış değil, <strong>kışın biriken su</strong>
+      belirliyor. Nisan sonunda bilinen toprak nemi, o yazın stresini öngörüyor.
+    </p>
+    <div class="stat">
+      <div><b class="good">+0,445</b><span>iklimatolojiye karşı</span></div>
+      <div><b class="good">+0,732</b><span>kalıcılığa karşı</span></div>
+      <div><b>68</b><span>yıl (1958–2025)</span></div>
+      <div><b>2005–25</b><span>test dönemi</span></div>
+    </div>
+    <p style="margin-bottom:0">
+      Kronolojik bölme, her iki taban çizgisi de geçildi. Model kasten en basit
+      haliyle — amaç en iyi tahmini bulmak değil, fiziksel bağın öngörü değeri
+      taşıdığını göstermek.
+    </p>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="{{summary_forecast_skill.png}}" alt="Tahmin becerisi karşılaştırması: mekanik soru negatif, fiziksel soru pozitif"></div>
+    <figcaption><b>Aynı veri, aynı üç aylık ufuk, aynı katı değerlendirme.</b> Fark tamamen sorunun kurulumundan geliyor. Negatif beceri, “hiçbir şey söylememekten kötü” demek.</figcaption>
+  </figure>
+
+  <div class="finding pass">
+    <div class="fhead"><span class="chip pass">Doğrulandı</span><h3>Sulama, NDVI'daki kuraklık sinyalini maskeliyor</h3></div>
+    <p>
+      Kurak yıllarda sulama kanalından uzaktaki tarım alanı, kanala yakın olandan
+      <strong>3–10 kat</strong> fazla NDVI kaybediyor. Yağışlı yılda iki grup
+      arasında fark yok — yani fark yalnızca stres varken ortaya çıkıyor.
+    </p>
+    <p style="margin-bottom:0">
+      Bu hem sulama kriterini bağımsız gözlemle doğruluyor, hem de metodolojik bir
+      sonuç veriyor: <strong>sulanan havzada NDVI, tarımsal kuraklık etkisini
+      ölçemez.</strong> Çiftçi sularsa yeşillik korunur; etki suya, maliyete ve
+      rezervuar seviyesine yansır, spektruma değil.
+    </p>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="{{summary_irrigation.png}}" alt="Sulama kanalına yakın ve uzak tarım alanlarının NDVI anomalisi"></div>
+    <figcaption><b>Kanala yakın tarım kurak yılda neredeyse etkilenmiyor.</b> Yağmura bağlı tarımın kaybı 2024'te on kat fazla; 2023 yağışlı yılında fark sıfır.</figcaption>
+  </figure>
+
+  <div class="finding pass">
+    <div class="fhead"><span class="chip pass">Doğrulandı</span><h3>SPI hesabı bağımsız indeksle örtüşüyor</h3></div>
+    <p>
+      68 yıllık TerraClimate yağış serisinden hesaplanan SPI, tanımı gereği taşıması
+      gereken özellikleri taşıyor: ortalama −0,000, standart sapma 1,000. Bağımsız
+      formülasyonlu PDSI ile <strong>r = 0,782</strong>.
+    </p>
+    <p style="margin-bottom:0">
+      Tespit ettiği kuraklıklar gerçek: <strong>1989-01 – 1991-02 (26 ay)</strong>,
+      2000–2001, 1991–1993, <strong>2007 (11 ay)</strong> — Türkiye'nin bilinen
+      kurak dönemleri.
+    </p>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="{{spi_series.png}}" alt="1958-2025 arası SPI-3, SPI-6 ve SPI-12 serileri"></div>
+    <figcaption><b>68 yıllık kuraklık kaydı.</b> SPI-12 panelinde 1988–94 ve 2007–08 kuraklıkları açıkça görülüyor. Kırmızı kurak, mavi nemli.</figcaption>
+  </figure>
+
+  <div class="finding fail">
+    <div class="fhead"><span class="chip fail">Doğrulanmadı</span><h3>Haritanın mekânsal sıralaması gözlenen etkiyi öngörmüyor</h3></div>
+    <p>
+      Sınama beş kez, giderek daha adil kurulumla tekrarlandı. Her seferinde bir
+      yanlılık bulundu ve düzeltildi — ama sonuç değişmedi.
+    </p>
+    <div class="stat">
+      <div><b class="bad">−0,021</b><span>Landsat, 7 kurak yıl</span></div>
+      <div><b class="bad">+0,050</b><span>ET/PET, 3 kurak yıl</span></div>
+      <div><b>27</b><span>yıl, 30 m</span></div>
+      <div><b>2</b><span>bağımsız etki ölçüsü</span></div>
+    </div>
+    <p style="margin-bottom:0">
+      Ayarlanarak geçirilmedi. Yıl bazında korelasyonlar −0,39 ile +0,35 arasında
+      rastgele salınıyor — sinyal değil gürültü.
+    </p>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="{{summary_validation.png}}" alt="Beş farklı doğrulama kurulumunun sonuçları, hepsi sıfır bandında"></div>
+    <figcaption><b>Her düzeltme sonucu iyileştirdi, hiçbiri hipotezi kurtarmadı.</b> Kurak yıl etiketi, varyans yanlılığı ve bitki yoğunluğu yanlılığı sırayla giderildi; ilişki sıfır bandından çıkmadı.</figcaption>
+  </figure>
+
+  <div class="finding hold">
+    <div class="fhead"><span class="chip hold">Reddedildi</span><h3>Kurulan mekanizma hipotezi sınandı ve tutmadı</h3></div>
+    <p>
+      Kriterlerin havzadaki <em>gerçek</em> değişkenliği ölçüldü: ağırlığın
+      <strong>%46'sı</strong> neredeyse hiç değişmeyen üç kriterde (LST göreli
+      yayılım 0,34 · toprak 0,36 · yağış 0,84). Yüzdelik normalizasyon, 4.800 km²'de
+      28 mm'lik yağış farkını 29 km'lik mesafe farkıyla eşitliyor.
+    </p>
+    <p style="margin-bottom:0">
+      Hipotez: harita bu yüzden ayrım üretemiyor. Sınama: yalnızca gerçekten değişen
+      kriterlerle yeniden ağırlıklandırıldı. Sonuç: ρ −0,021 → <strong>+0,033</strong>.
+      Düzelmedi. <strong>Hipotez reddedildi</strong> — teşhis doğru ama başarısızlığın
+      sebebi o değil.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Sonuç üç yönden sağlam</h2>
+  <div class="col">
+    <p>Olumsuz bulgunun “yanlış bir seçimden” kaynaklanma ihtimali tek tek elendi:</p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Kontrol</th><th>Ne değiştirildi</th><th class="num">Kurak yıl ρ</th><th>Sonuç</th></tr></thead>
+      <tbody>
+        <tr><td>Etki ölçüsü</td><td>NDVI → ET/PET (su kısıtı)</td><td class="num">+0,050</td><td>Değişmedi</td></tr>
+        <tr><td>Sensör ve dönem</td><td>Sentinel-2 → Landsat 5 → MODIS</td><td class="num">−0,021</td><td>Değişmedi</td></tr>
+        <tr><td>Kriter kümesi</td><td>Sabit kriterler çıkarıldı</td><td class="num">+0,033</td><td>Değişmedi</td></tr>
+        <tr><td>Kurak yıl tanımı</td><td>Yaz SPI → ilkbahar toprak nemi</td><td class="num">−0,057</td><td>Değişmedi</td></tr>
+        <tr><td>Karşılaştırma tabanı</td><td>Havza → tarım → yağmura bağlı tarım</td><td class="num">−0,067</td><td>Değişmedi</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col">
+    <p>
+      Önemli olan: <strong>etki ölçüleri çalışıyor.</strong> ET/PET kurak yılları
+      doğru yakalıyor (2001: −0,033 · 2007: −0,058 · 2008: −0,029; yaş yıllar
+      pozitif). Kuraklığı görüyor — sadece haritanın mekânsal deseniyle
+      ilişkilendiremiyor.
+    </p>
+  </div>
+
+  <div class="note col" style="max-width:none">
+    <p>
+      <strong>Geriye kalan en makul açıklama</strong> — bu projede sınanamadı ve
+      raporda öyle yazıldı: 30 m ölçekte kuraklık etkisini fiziksel duyarlılıktan
+      çok <strong>parsel düzeyi yönetim kararları</strong> belirliyor. Hangi ürün
+      ekildiği, sulanıp sulanmadığı, kuyu erişimi olup olmadığı. Bunlar hiçbir
+      fiziksel duyarlılık haritasının yakalayamayacağı değişkenler; ölçmek için
+      çiftlik düzeyi veri gerekiyor.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2>Bu neden bir katkı</h2>
+  <div class="col">
+    <p>
+      Model iç tutarlılık ölçütlerinin hepsini geçiyor: tutarlılık oranı 0,0093,
+      k-means uyumu %100, ağırlık duyarlılığı %92,4. Literatürdeki AHP kuraklık
+      haritalarının büyük kısmı <strong>tam da burada durur</strong> — duyarlılık
+      analizi yapılır, gözlenen etkiyle karşılaştırma yapılmaz.
+    </p>
+    <ol>
+      <li><strong>İç tutarlılık, geçerlilik değildir.</strong> Bütün metodolojik ölçütleri geçen bir harita gözlenen etkiyi öngörmeyebilir.</li>
+      <li><strong>Sulanan havzada NDVI, kuraklık etkisinin ölçüsü değildir.</strong> Etki suya ve maliyete yansıyor, spektruma değil.</li>
+      <li><strong>Doğrulama, uydu arşivinin kapsadığı dönemle sınırlıdır.</strong> Bu havzanın gerçek kuraklıkları Sentinel-2'den önce; Landsat olmasa test hiç yapılamazdı.</li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <h2>Yol boyunca bulunan sessiz hatalar</h2>
+  <div class="col">
+    <p>
+      Hiçbiri hata mesajı vermiyordu; hepsi sessizce yanlış sonuç üretecekti.
+      Her biri regresyon testine bağlandı.
+    </p>
+  </div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Hata</th><th>Etkisi</th></tr></thead>
+      <tbody>
+        <tr><td>Sentinel-2 baseline 04.00 offset'i</td><td>2022 sonrası NDVI sistematik 0,13 düşük — “son yıllarda stres arttı” diye okunacaktı</td></tr>
+        <tr><td>Yanlış UTM zone (32636 → 32635)</td><td>Bölge zone dışında, ciddi ölçek deformasyonu</td></tr>
+        <tr><td>Senaryo kriterleri aynı dosyayı paylaşıyordu</td><td>Senaryo karşılaştırması anlamsız %100 uyum raporluyordu</td></tr>
+        <tr><td>Jenks tekrarlanabilir değildi</td><td>Aynı veriyle iki çalıştırma farklı sınıf sınırları veriyordu</td></tr>
+        <tr><td>MODIS Terra/Aqua karışımı</td><td>Geçiş saati farkı birkaç K sistematik sapma</td></tr>
+        <tr><td>Sulama kriteri %69 tavana yapışmıştı</td><td>0,178 ağırlıklı kriter çoğu piksel için ayrım üretmiyordu</td></tr>
+        <tr><td>z-skoru sıfıra bölmede patlıyordu</td><td>Anomali aralığı −411…+141 çıkıyordu</td></tr>
+        <tr><td>Kendi hüküm mantığım hatalıydı</td><td>Tek kurak yılla ρ = −0,04'e “desteklendi” diyordu</td></tr>
+        <tr><td>Eurostat'ta üretim = alan raporlanmış</td><td>Beş uydurma yıl analize girecekti</td></tr>
+        <tr><td>PROJ çakışması (PostgreSQL/PostGIS)</td><td>Hiçbir EPSG kodu çözülemiyordu</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <h2>Havzanın karakteri</h2>
+  <div class="grid2">
+    <figure>
+      <div class="plate"><img src="{{ndvi_parcel_curves_2024.png}}" alt="Arazi örtüsüne göre yıl içi NDVI seyri"></div>
+      <figcaption><b>Tarım temmuzda zirve yapıyor, mera nisanda.</b> Bu tek grafik havzanın sulamaya dayalı olduğunu gösteriyor — pamuk ve bağ yazın en yeşil dönemini yaşarken doğal mera kavruluyor.</figcaption>
+    </figure>
+    <figure>
+      <div class="plate"><img src="{{ndvi_animation_2024.gif}}" alt="2024 yılı aylık NDVI animasyonu"></div>
+      <figcaption><b>2024 boyunca mevsimsel döngü.</b> On iki aylık medyan NDVI kompoziti; tüm kareler aynı renk ölçeğinde.</figcaption>
+    </figure>
+  </div>
+
+  <figure>
+    <div class="plate"><img src="{{criteria_panel_steep_riskier.png}}" alt="Dokuz normalize kriter katmanı"></div>
+    <figcaption><b>Dokuz kriter, ortak 0–1 ölçeğinde.</b> Sulama paneli Gediz kanal koridorunu, eğim paneli Bozdağlar'ı, yağış paneli CHIRPS'in 5,5 km'lik hücrelerini açıkça gösteriyor.</figcaption>
+  </figure>
+
+  <div class="grid2">
+    <figure>
+      <div class="plate"><img src="{{seasonal_predictor.png}}" alt="Kış sonu toprak nemi ile yaz stresi ilişkisi"></div>
+      <figcaption><b>Öngörünün dayandığı fiziksel bağ.</b> Nisan toprak nemi ile yaz stresi arasındaki ilişki; eğitim ve test dönemleri ayrı işaretli.</figcaption>
+    </figure>
+    <figure>
+      <div class="plate"><img src="{{ndvi_anomaly_2024.png}}" alt="2024 kurak dönem NDVI anomalisi haritası"></div>
+      <figcaption><b>2024 anomalisi.</b> Taban çizgisi hedef yılı dışlıyor; aksi halde yıl kendi ortalamasını kendine çeker ve anomali küçük görünürdü.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section>
+  <h2>Sınırlılıklar</h2>
+  <div class="col">
+    <ol>
+      <li><strong>Sulama katmanı bir vekildir.</strong> OSM'deki 237 km kanal ağından türetildi; DSİ'nin resmî komuta alanı değil. Tersiyer şebeke OSM'de eksik.</li>
+      <li><strong>AHP matrisi uzman anketiyle kurulmadı.</strong> Literatürdeki sıralamayı temsil eden bir başlangıç seti. Anket aracı hazır, anket yapılmadı.</li>
+      <li><strong>Saha verisiyle doğrulama yok.</strong> TÜİK ilçe verisi makine okunur değil; Eurostat'ın bölgesel verisi denendi ve kalite denetimlerinde elendi.</li>
+      <li><strong>Tarihsel sınama bugünkü haritayı kullanıyor.</strong> 1990'ı sınarken “desen 35 yılda değişmedi” varsayılıyor — topoğrafya için güvenli, sulama için tartışmalı.</li>
+      <li><strong>Ölçek uyumsuzluğu.</strong> Yağış ~5,5 km, sıcaklık 1 km, toprak 250 m katmanları 30 m grid'e yeniden örnekleniyor.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <p>
+    Tüm veri kaynakları açık ve anahtarsız: Copernicus DEM · Sentinel-2 L2A ·
+    Landsat 5 · ESA WorldCover · MODIS · CHIRPS · TerraClimate · SoilGrids ·
+    OpenStreetMap. Yöntem ve künyeler proje deposunda.
+  </p>
+</footer>
+
+</div>
