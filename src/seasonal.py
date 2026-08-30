@@ -225,6 +225,48 @@ def evaluate_seasonal(
             )
         )
 
+    # --- Cok Degiskenli Model (Ridge) ---
+    if len(names) > 1:
+        from sklearn.linear_model import Ridge
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.pipeline import make_pipeline
+
+        X = dataset.predictors[list(names)]
+        y = target
+        common = X.index.intersection(y.index)
+        X, y = X.loc[common], y.loc[common]
+
+        train_X = X.loc[X.index.intersection(train_years)]
+        train_y = y.loc[y.index.intersection(train_years)]
+        test_X = X.loc[X.index.intersection(test_years)]
+        test_y = y.loc[y.index.intersection(test_years)]
+
+        if len(train_X) >= 15 and len(test_X) >= 8:
+            model = make_pipeline(StandardScaler(), Ridge(alpha=1.0))
+            model.fit(train_X, train_y)
+            prediction = model.predict(test_X)
+            
+            error = prediction - test_y
+            mse = float((error**2).mean())
+            mse_clim_here = float(((test_y - climatology) ** 2).mean())
+            
+            name_multi = "Çok Değişkenli (Ridge)"
+            rows.append(
+                SeasonalSkill(
+                    name_multi, len(test_X),
+                    float(np.corrcoef(test_y, prediction)[0, 1]),
+                    float(np.sqrt(mse)),
+                    1 - mse / mse_clim_here if mse_clim_here else np.nan,
+                    1 - mse / mse_persistence if mse_persistence else np.nan,
+                )
+            )
+
+            # Sadece referans olmasi icin katsayilari loglayalim (grafik tek degiskenli calistigi icin ona dokunmuyoruz)
+            learned["multi_coefficients"] = {
+                "features": list(names),
+                "coefs": [float(c) for c in model.named_steps["ridge"].coef_]
+            }
+
     return rows, learned
 
 

@@ -37,3 +37,8 @@ imageio>=2.34              # NDVI animasyonu (GIF/MP4)
 # --- Geliştirme ---
 pytest>=8.0
 tqdm>=4.66
+
+# --- Dashboard ---
+streamlit>=1.30
+folium>=0.15
+streamlit-folium>=0.17

@@ -179,7 +179,7 @@ def historical_test(
             }
         )
         print(f"      {year}: SPI-12 {spi_value:+.2f} "
-              f"({'KURAK' if is_dry else 'normal'})  ρ = {rows[-1]['rho']:+.4f}")
+              f"({'KURAK' if is_dry else 'normal'})  r = {rows[-1]['rho']:+.4f}")
 
     dry = [r for r in rows if r["is_dry"]]
     normal = [r for r in rows if not r["is_dry"]]
@@ -216,7 +216,7 @@ def summarize(config: Config, result: dict) -> str:
     lines = [
         f"Etki ölçüsü: {result.get('source_label', 'NDVI')}",
         "",
-        f"{'Yıl':<7}{'SPI-12':>9}{'durum':>9}{'ort. anomali':>15}{'risk-anomali ρ':>17}{'monoton':>10}",
+        f"{'Yıl':<7}{'SPI-12':>9}{'durum':>9}{'ort. anomali':>15}{'risk-anomali r':>17}{'monoton':>10}",
         "-" * 67,
     ]
     for row in result["rows"]:
@@ -229,9 +229,9 @@ def summarize(config: Config, result: dict) -> str:
 
     dry, normal = result["dry"], result["normal"]
     lines += [
-        f"Kurak yıllar  (n={len(dry)}): ortalama ρ = {result['dry_rho']:+.4f}"
+        f"Kurak yıllar  (n={len(dry)}): ortalama r = {result['dry_rho']:+.4f}"
         f"   [{', '.join(str(r['year']) for r in dry)}]",
-        f"Normal yıllar (n={len(normal)}): ortalama ρ = {result['normal_rho']:+.4f}",
+        f"Normal yıllar (n={len(normal)}): ortalama r = {result['normal_rho']:+.4f}",
         f"Fark: {result['normal_rho'] - result['dry_rho']:+.4f}"
         "  (pozitif = kurak yıllarda ilişki daha güçlü)",
         "",
@@ -263,7 +263,7 @@ def _verdict(result: dict, min_dry: int, min_effect: float) -> str:
     if result["dry_rho"] >= -min_effect:
         return (
             f"DESTEKLENMEDİ — kurak yıllarda ilişki fiilen sıfır "
-            f"(ρ = {result['dry_rho']:+.3f}, eşik ≤ {-min_effect:.2f}). "
+            f"(r = {result['dry_rho']:+.3f}, eşik <= {-min_effect:.2f}). "
             "Harita ağır stres altında da etkilenen alanları göstermiyor."
         )
     if result["normal_rho"] - result["dry_rho"] < min_effect:

@@ -78,6 +78,19 @@ def weighted_overlay(stack: CriteriaStack, weights: np.ndarray) -> np.ndarray:
         raise ValueError("Ağırlıklar negatif olamaz")
 
     risk = np.einsum("k,kij->ij", weights, np.nan_to_num(stack.data, nan=0.0))
+    
+    # --- Sulama/Direnç Faktörü (Mitigation Factor) ---
+    # Gerçek hasarı öngörebilmek için fiziksel kırılganlığı sulama direnciyle çarpıyoruz.
+    # 'distance_to_water' normalize skoru: 0 (suya çok yakın, düşük risk) ile 1 (suya uzak, yüksek risk)
+    # Suya yakınlık bir "direnç" (mitigation) oluşturur. Riski %30'a kadar düşürebilir.
+    if "distance_to_water" in stack.names:
+        idx = stack.names.index("distance_to_water")
+        dist_score = np.nan_to_num(stack.data[idx], nan=0.0)
+        # Suya yakınsa (dist_score ~ 0), mitigation ~ 0.30
+        # Suya uzaksa (dist_score ~ 1), mitigation ~ 0.00
+        mitigation_factor = 0.30 * (1.0 - dist_score)
+        risk = risk * (1.0 - mitigation_factor)
+
     return np.where(stack.valid_mask, risk, np.nan).astype("float32")
 
 

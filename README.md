@@ -352,6 +352,29 @@ Bunlar hiçbir fiziksel duyarlılık haritasının yakalayamayacağı değişken
 - Landsat 5 TM ile Sentinel-2 MSI aynı NDVI'ı vermez; bu yüzden anomali
   **Landsat döneminin kendi içinde** hesaplandı, iki dönem hiç karıştırılmadı.
 
+## Fiziksel Risk ve Gözlemsel Stres Arasındaki Ayrışma (Yeni Analizler)
+
+Proje kapsamında kurulan fiziksel AHP risk haritasının öngörü gücü, daha karmaşık Machine Learning modelleri ve geçmiş uydu verileriyle (1985-2011) test edilmiş ve aşağıdaki temel bulgular elde edilmiştir: 
+
+### Modül 01: Pure Physical Baseline (Makine Öğrenmesi ile Fiziksel Model)
+Fiziksel değişkenlerin (yağış, LST, toprak, eğim vb.) gözlenen tarımsal stresi ne kadar açıklayabildiğini test etmek için, mekânsal sızıntıyı (spatial leakage) engelleyen katı bir 100x100 Spatial Block Cross-Validation (GroupKFold) kurgusu ile bir Random Forest modeli eğitildi.
+- **Sonuç:** Modelin öngörü gücü R² ≈ 0.13 ve RMSE = 0.0905 olarak ölçüldü.
+- **Anlamı:** Yüksek düzeyde insan müdahalesine (sulama altyapısı vb.) sahip bu tarım havzasında, yalnızca fiziksel ve meteorolojik değişkenler kuraklık stresini açıklamakta oldukça sınırlı kalmaktadır. 
+
+### Modül 02: Fiziksel-Gözlemsel Uyumsuzluk (Resilience Gap)
+Makine öğrenmesi tabanlı Pure Physical Baseline modelinin beklediği fiziksel stres (prediction) ile uydudan gözlenen gerçek stres (NDVI anomaly) arasındaki mekânsal fark (residual) haritalanmıştır.
+- Beklenen fiziksel stresten daha az stres gözlenen bölgeler (pozitif gap), dışsal müdahalelerin (örneğin sulama veya derin yeraltı suyu) bitki direncini artırmasıyla uyumludur. 
+- Bu harita bir nedensellik kanıtı değil, gözlemsel bir tanı aracı (diagnostic) olarak üretilmiştir.
+
+### Modül 03: Tarihsel Ayrışma (Historical Decoupling, 1985-2011)
+AHP tabanlı fiziksel risk haritasının, geçmişteki büyük kuraklık yıllarında bitki örtüsü stresiyle ne kadar ilişkili olduğu Landsat 5 kullanılarak test edildi. Geçmiş kurak yıllara ait Spearman r korelasyonları şöyledir:
+- **Erken Dönem:** 1989 (r = -0.21), 1990 (r = -0.06), 1992 (r = -0.44), 1994 (r = -0.26). Bu yıllarda fiziksel risk ile gözlenen stres arasında beklenen yönde negatif ilişkiler mevcuttur.
+- **Geç Dönem:** 2001 (r = +0.35), 2007 (r = -0.07), 2008 (r = +0.01). 2000'li yıllardaki kuraklıklarda ise bu ilişkinin zayıfladığı veya yön değiştirdiği gözlenmiştir.
+
+**Bilimsel Çıkarım:** Fiziksel su stresi riski ile tarımsal sistemin kırılganlığı arasındaki mekânsal ilişki durağan değildir (temporally non-stationary). Fiziksel riskin gözlenen tarımsal etkiyi açıklama gücündeki bu azalma; havzadaki insan yönetimi, sulama uygulamaları veya mahsul deseni değişiklikleriyle uyumludur.
+
+*(Sınırlılık Notu: 1985-2011 dönemine ait bu analizde, veri eksikliğinden dolayı güncel tarım maskesi kullanılmıştır. Zaman içinde değişen tarım sınırları, tarihsel sonuçlar üzerinde bir belirsizlik barındırmaktadır.)*
+
 ## NDVI mi EVI mi?
 
 Jia ve ark. (2020) EVI'nin kuraklık duyarlılığını göstermede NDVI'dan biraz
