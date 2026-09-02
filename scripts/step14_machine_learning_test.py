@@ -209,8 +209,89 @@ def main(argv: list[str] | None = None) -> int:
     joblib.dump(final_rf, model_path)
     print(f"Model başarıyla kaydedildi: {model_path}")
 
+    _write_report(
+        config,
+        args,
+        feature_names=feature_names,
+        r2=r2_scores,
+        rmse=rmse_scores,
+        mae=mae_scores,
+        importances=avg_importances,
+        n_samples=len(y),
+        n_blocks=len(np.unique(groups)),
+        model_path=model_path,
+    )
+
     print(f"\nAdım 14 Tamamlandı ({args.model_type.upper()} Modeli).")
     return 0
+
+
+def _write_report(config, args, *, feature_names, r2, rmse, mae, importances,
+                  n_samples, n_blocks, model_path) -> None:
+    """Sonuçları dosyaya yazar.
+
+    NEDEN: bu skorlar bugüne kadar yalnızca konsola basılıyordu, yani "R² 0,13
+    nereden geliyor" sorusuna açılacak bir dosya yoktu. Ayrıca kat bazında
+    dağılım verilmeden ortalama R² tek başına yanıltıcıdır — beş katın biri
+    negatifse bunu ortalama gizler.
+    """
+    out = resolve(config["paths"]["reports"]) / f"ml_baseline_{args.model_type}.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    r2, rmse, mae = np.asarray(r2), np.asarray(rmse), np.asarray(mae)
+    fold_rows = "\n".join(
+        f"| {i} | {a:+.4f} | {b:.4f} | {c:.4f} |"
+        for i, (a, b, c) in enumerate(zip(r2, rmse, mae), 1)
+    )
+    imp_rows = "\n".join(
+        f"| `{n}` | %{v * 100:.1f} |"
+        for n, v in sorted(zip(feature_names, importances), key=lambda t: -t[1])
+    )
+
+    body = f"""# Fiziksel Taban Çizgisi — Random Forest (`{args.model_type}`)
+
+**Soru:** Yalnızca fiziksel ve meteorolojik değişkenler, gözlenen tarımsal
+stresi (NDVI anomalisi) ne kadar açıklayabiliyor?
+
+**Kurgu:** {n_samples:,} örnek · {args.grid_size}x{args.grid_size} piksellik
+mekânsal bloklar ({n_blocks:,} blok) · 5 katlı GroupKFold. Eğitim maskesi:
+`{args.train_mask}`. Model: RandomForestRegressor (n_estimators=100,
+max_depth=15, min_samples_leaf=5, random_state=42).
+
+Mekânsal blok çapraz doğrulama, komşu piksellerin birbirine benzemesinden
+doğan sızıntıyı (spatial leakage) engeller. Rastgele bölmeyle skor yapay
+olarak yüksek çıkardı; buradaki sayı bu yüzden kasıtlı olarak muhafazakârdır.
+
+## Kat bazında sonuçlar
+
+| Kat | R² | RMSE | MAE |
+|---|---:|---:|---:|
+{fold_rows}
+| **ortalama** | **{r2.mean():+.4f}** | **{rmse.mean():.4f}** | **{mae.mean():.4f}** |
+| standart sapma | {r2.std():.4f} | {rmse.std():.4f} | {mae.std():.4f} |
+
+## Özellik önemleri (katlar arası ortalama)
+
+| Özellik | Önem |
+|---|---:|
+{imp_rows}
+
+## Yorum
+
+R² ≈ {r2.mean():.2f}: fiziksel değişkenler gözlenen stresin küçük bir kısmını
+açıklıyor. Bu, modelin kötü kurulduğu anlamına gelmez — yoğun insan müdahalesi
+olan (sulama altyapısı, kuyu erişimi, ürün deseni) bir tarım havzasında,
+yalnızca fiziksel duyarlılıktan yola çıkarak parsel ölçeğinde stres öngörmenin
+sınırını ölçüyor.
+
+Özellik önemleri nedensellik göstermez: ağacın bölme tercihidir ve birbiriyle
+ilişkili değişkenler arasında paylaşılır.
+
+Model dosyası: `{model_path.name}`
+"""
+    out.write_text(body, encoding="utf-8")
+    print(f"Rapor: {out}")
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -81,7 +81,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\n" + _indent(summarize(config, result)))
     _write_report(config, result, years)
-    print(f"\nAdım 13 tamamlandı. Rapor: outputs/reports/historical_test.md")
+    # Rapor adı etki ölçüsüne göre ayrışır; sabit ad yazdırmak yanıltıcıydı.
+    print(f"\nAdım 13 tamamlandı. Rapor: outputs/reports/historical_test_{result['source']}.md")
     return 0
 
 

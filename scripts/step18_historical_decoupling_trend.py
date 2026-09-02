@@ -1,8 +1,12 @@
-"""Adım 18 — Modül 4: Historical Decoupling Trend (Zamana Bağlı Ayrışma).
+"""Adım 18 — Zamana bağlı ayrışma (Historical Decoupling) sınaması.
 
-Bu modül, zaman içinde tarım alanlarındaki sulama altyapısının artmasıyla
-birlikte, fiziksel kuraklık riskinin (eğim, toprak) gerçekleşen hasarı
-açıklama gücünün nasıl azaldığını (Decoupling) test eder.
+Bu modül, fiziksel kuraklık riskinin gerçekleşen hasarı açıklama gücünün zaman
+içinde DEĞİŞİP DEĞİŞMEDİĞİNİ sınar. Sonucu peşinen varsaymaz: eğilim testi
+anlamlı çıkmazsa rapor bunu açıkça yazar.
+
+Hipotez, sulama altyapısı genişledikçe fiziksel modelin zayıflaması yönündedir
+(eğim > 0). Yedi kurak yıllık bir regresyonun gücü düşüktür; bu yüzden hüküm
+p < 0,05 koşuluna bağlanmıştır.
 """
 
 from __future__ import annotations
@@ -127,9 +131,80 @@ def main(argv: list[str] | None = None) -> int:
     plt.savefig(out_fig, dpi=150)
     
     print(f"\n[2] Grafik kaydedildi: {out_fig}")
-    print("\nAdım 18 tamamlandı.")
-    
+
+    _write_report(config, results, dry_years, out_fig)
+    print("\nAdım 18 tamamlandı. Rapor: outputs/reports/historical_decoupling.md")
+
     return 0
+
+
+def _write_report(config, results, dry_years, out_fig) -> None:
+    """Yıl bazında korelasyonları ve trendi dosyaya yazar.
+
+    NEDEN: bu adım bugüne kadar yalnızca bir PNG üretiyordu. Grafikten sayı
+    okunamaz; README'de alıntılanan yıl bazında `r` değerlerinin açılacak bir
+    dosyası olmalı.
+    """
+    out = resolve(config["paths"]["reports"]) / "historical_decoupling.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+
+    rows = "\n".join(
+        f"| {r['year']} | {'KURAK' if r['is_dry'] else 'normal'} | {r['rho']:+.4f} |"
+        for r in sorted(results, key=lambda r: r["year"])
+    )
+
+    trend = ""
+    if len(dry_years) >= 3:
+        x = np.array([r["year"] for r in dry_years])
+        y = np.array([r["rho"] for r in dry_years])
+        slope, _, r_value, p_value, _ = linregress(x, y)
+        direction = (
+            "sıfıra doğru zayıflıyor" if slope > 0 else "beklenen yönde güçleniyor"
+        )
+        # Anlamlılık eşiği geçilmediyse yönü yorumlamak yanıltıcı olur.
+        significant = p_value < 0.05
+        if significant:
+            reading = (
+                f"ilişki zamanla **{direction}**."
+                + (
+                    " Havzada sulama altyapısının genişlemesiyle uyumludur, ama"
+                    " bu adım nedensellik kurmaz."
+                    if slope > 0
+                    else ""
+                )
+            )
+        else:
+            reading = (
+                f"eğim işareti {direction.split()[0]} yönde, **ama istatistiksel"
+                f" olarak anlamlı değil** (p = {p_value:.3f} > 0,05)."
+                " Bu veriyle zamana bağlı bir eğilim iddia edilemez;"
+                " yıl bazında korelasyonlar sıfır çevresinde saçılıyor."
+            )
+        trend = f"""
+## Kurak yıllarda eğilim
+
+Kurak yılların ({len(dry_years)} yıl) korelasyonlarına doğru eğri uydurulduğunda
+eğim **{slope:+.4f}/yıl** (R² = {r_value ** 2:.3f}, p = {p_value:.3f});
+{reading}
+
+`p` değeri yalnızca {len(dry_years)} noktalı bir regresyondan gelir; bu kadar az
+gözlemle eğilim testinin gücü düşüktür.
+"""
+
+    out.write_text(f"""# Tarihsel Ayrışma — Risk Haritasının Açıklayıcılığı Zamanla Değişiyor mu?
+
+**Dönem:** Landsat 5, {min(r["year"] for r in results)}–{max(r["year"] for r in results)}
+· **Kapsam:** tarım alanı · **Ölçü:** risk indeksi ile gözlenen NDVI anomalisi
+arasındaki sıra korelasyonu, yıl bazında.
+
+## Yıl bazında korelasyon
+
+| Yıl | Durum | r |
+|---|---|---:|
+{rows}
+{trend}
+Grafik: `{out_fig.name}`
+""", encoding="utf-8")
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -1,181 +1,414 @@
+"""Streamlit analist paneli — AHP tabanlı tarımsal kuraklık riski, Gediz Havzası.
+
+Bu panel ile React vitrini (`web-app/`) AYNI veri dosyasını okur:
+`web-app/public/data/summary.json`, üreteni `scripts/export_web_data.py`.
+Hiçbir sayı burada elle yazılmaz; iki arayüz bu yüzden birbirinden sapamaz.
+
+Çalıştırma:
+    python -m scripts.export_web_data     # özet + harita kaplaması üret
+    streamlit run dashboard/app.py
+"""
+
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pandas as pd
 import streamlit as st
-import os
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+FIGURES_DIR = BASE_DIR / "outputs" / "figures"
+REPORTS_DIR = BASE_DIR / "outputs" / "reports"
+WEB_DATA_DIR = BASE_DIR / "web-app" / "public" / "data"
+SUMMARY_PATH = WEB_DATA_DIR / "summary.json"
 
 st.set_page_config(
-    page_title="Tarımsal Kuraklık Risk Haritası",
-    page_icon="🌍",
+    page_title="Gediz Havzası — Tarımsal Kuraklık Riski",
+    page_icon="🌾",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
 
-# Proje dizinleri (dashboard klasörünün bir üstü)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FIGURES_DIR = os.path.join(BASE_DIR, "outputs", "figures")
-DATA_DIR = os.path.join(BASE_DIR, "data", "processed")
 
-# Özel stil
-st.markdown("""
-<style>
-    .main-header {
-        font-size: 2.5rem;
-        color: #2E86C1;
-        font-weight: 700;
-        margin-bottom: 0px;
-    }
-    .sub-header {
-        font-size: 1.2rem;
-        color: #7F8C8D;
-        margin-bottom: 20px;
-    }
-</style>
-""", unsafe_allow_html=True)
+@st.cache_data(show_spinner=False)
+def load_summary(mtime: float) -> dict:
+    """`mtime` yalnızca önbelleği geçersizleştirmek için parametre."""
+    del mtime
+    return json.loads(SUMMARY_PATH.read_text(encoding="utf-8"))
 
-# Yan Menü (Sidebar)
-st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/T.C._Tar%C4%B1m_ve_Orman_Bakanl%C4%B1%C4%9F%C4%B1_Logo.svg/1200px-T.C._Tar%C4%B1m_ve_Orman_Bakanl%C4%B1%C4%9F%C4%B1_Logo.svg.png", width=100) # Sembolik logo
+
+def tr_num(value: float, digits: int = 1) -> str:
+    """Türkçe biçim: binlik nokta, ondalık virgül. 4634.9 -> "4.634,9"."""
+    whole, _, frac = f"{value:,.{digits}f}".partition(".")
+    whole = whole.replace(",", ".")
+    return f"{whole},{frac}" if frac else whole
+
+
+def tr_km2(value: float) -> str:
+    return f"{tr_num(value)} km²"
+
+
+def tr_pct(value: float, digits: int = 1) -> str:
+    return f"%{tr_num(value, digits)}"
+
+
+def show_figure(name: str, caption: str | None = None) -> bool:
+    """Figürü varsa gösterir; yoksa hangi adımın üreteceğini söyler."""
+    path = FIGURES_DIR / name
+    if not path.exists():
+        st.info(f"`outputs/figures/{name}` henüz üretilmemiş.")
+        return False
+    st.image(str(path), width="stretch", caption=caption)
+    return True
+
+
+if not SUMMARY_PATH.exists():
+    st.error("Özet verisi bulunamadı.")
+    st.code("python -m scripts.export_web_data", language="bash")
+    st.caption(
+        f"Beklenen dosya: {SUMMARY_PATH.relative_to(BASE_DIR)} — "
+        "config.yaml ve outputs/reports/ içeriğinden üretilir."
+    )
+    st.stop()
+
+D = load_summary(SUMMARY_PATH.stat().st_mtime)
+CLS = D["classification"]
+AHP = D["ahp"]
+
+# --- Yan menü ---------------------------------------------------------------
+
 st.sidebar.title("AHP Kuraklık Riski")
-st.sidebar.markdown("Gediz Havzası (Manisa - Salihli)")
+st.sidebar.caption(D["project"]["aoi_name"])
 
 page = st.sidebar.radio(
-    "Menü",
-    ["Genel Bakış", "Kriterler ve Etki", "Zaman Serisi (NDVI & SPI)", "Doğrulama ve Analiz"]
+    "Bölüm",
+    [
+        "Genel bakış",
+        "Kriterler ve ağırlıklar",
+        "Zaman serisi",
+        "Doğrulama ve sınırlılıklar",
+    ],
 )
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("**Hazırlayan:** Veri Bilimi Ekibi")
-st.sidebar.markdown("**Veri Yılı:** 2017 - 2025")
+st.sidebar.divider()
+st.sidebar.markdown(
+    "\n\n".join(
+        [
+            f"**Senaryo** · `{D['scenario']}`",
+            f"**Grid** · {D['grid']['resolution_m']:.0f} m · {D['grid']['crs']}",
+            f"**Sürüm** · {D['project']['version']}",
+            f"**Veri özeti** · {D['generated']}",
+        ]
+    )
+)
+st.sidebar.caption(
+    "Bütün sayılar scripts/export_web_data.py çıktısından okunur; "
+    "panelde elle yazılmış değer yoktur."
+)
 
-if page == "Genel Bakış":
-    st.markdown('<p class="main-header">Genel Bakış ve Risk Haritası</p>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-header">Gediz Havzası Çok Kriterli Tarımsal Kuraklık Modeli</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    Bu proje, **Analitik Hiyerarşi Süreci (AHP)** kullanılarak Gediz Havzası için 9 kriterli bir tarımsal kuraklık risk modeli oluşturmuştur.
-    Model, sadece bitki örtüsünü değil; yağış, toprak su kapasitesi, yüzey sıcaklığı ve sulama şebekesine uzaklık gibi hidrolojik 
-    ve yapısal faktörleri de birleştirir.
-    """)
-    
-    col1, col2, col3 = st.columns(3)
-    col1.metric("Toplam Alan", "4.842 km²")
-    col2.metric("En Riskli Alan (Çok Yüksek)", "% 11.0", "-508 km²")
-    col3.metric("Sulama Katkısı", "Yüksek", "+ Tarımı koruyor")
-    
-    map_type = st.radio("Harita Görünümü", ["Statik Görsel (Hızlı)", "Etkileşimli Harita (Detaylı)"], horizontal=True)
-    
-    if map_type == "Statik Görsel (Hızlı)":
-        risk_map_path = os.path.join(FIGURES_DIR, "risk_map_steep_riskier.png")
-        if os.path.exists(risk_map_path):
-            st.image(risk_map_path, use_container_width=True, caption="5 Sınıflı Kuraklık Risk Haritası")
-        else:
-            st.warning("Risk haritası bulunamadı. Lütfen analizleri çalıştırın.")
-    else:
+# --- Genel bakış ------------------------------------------------------------
+
+if page == "Genel bakış":
+    st.title("Genel bakış ve risk haritası")
+    st.markdown(
+        "Analitik Hiyerarşi Süreci ile kurulan çok kriterli tarımsal kuraklık "
+        "modeli. Model yalnızca bitki örtüsünü değil; yağış, toprak su "
+        "kapasitesi, yüzey sıcaklığı ve sulama şebekesine uzaklığı da "
+        "birleştirir."
+    )
+
+    very_high = CLS["classes"][-1]
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Sınıflandırılan alan", tr_km2(CLS["total_area_km2"]))
+    c2.metric(
+        "AHP kriteri",
+        str(AHP["n_criteria"]),
+        f"CR = {AHP['consistency_ratio']:.4f}",
+        delta_color="off",
+    )
+    c3.metric(
+        f"{very_high['label']} risk",
+        tr_pct(very_high["share_pct"]),
+        tr_km2(very_high["area_km2"]),
+        delta_color="off",
+    )
+    if CLS.get("masked"):
+        c4.metric("Maskeli alan", tr_km2(CLS["masked"]["area_km2"]))
+
+    view = st.radio(
+        "Harita görünümü",
+        ["Etkileşimli", "Statik figür"],
+        horizontal=True,
+        help="Etkileşimli görünüm export_web_data.py'nin ürettiği kaplamayı kullanır.",
+    )
+
+    overlay = D.get("map_overlay")
+    if view == "Etkileşimli" and overlay:
         import folium
         from streamlit_folium import st_folium
-        import rasterio
-        import numpy as np
-        
-        tif_path = os.path.join(DATA_DIR, "risk_class_steep_riskier.tif")
-        if os.path.exists(tif_path):
-            with st.spinner("Harita yükleniyor..."):
-                with rasterio.open(tif_path) as src:
-                    bounds = src.bounds
-                    data = src.read(1)
-                    nodata = src.nodata
-                
-                # 5 Sınıf için renk paleti (RGB formatında, 0-255 arası)
-                # Sınıflar: 1: Çok düşük, 2: Düşük, 3: Orta, 4: Yüksek, 5: Çok Yüksek
-                colors = {
-                    1: [44, 123, 182],   # Mavi
-                    2: [171, 217, 233],  # Açık mavi
-                    3: [255, 255, 191],  # Sarı
-                    4: [253, 174, 97],   # Turuncu
-                    5: [215, 25, 28]     # Kırmızı
-                }
-                
-                # RGBA resmi oluştur
-                h, w = data.shape
-                rgba = np.zeros((h, w, 4), dtype=np.uint8)
-                
-                for val, color in colors.items():
-                    mask = data == val
-                    rgba[mask, :3] = color
-                    rgba[mask, 3] = 180  # Şeffaflık (Alpha)
-                
-                # Nodata piksellerini tam şeffaf yap
-                if nodata is not None:
-                    rgba[data == nodata, 3] = 0
-                
-                min_lon, min_lat, max_lon, max_lat = bounds.left, bounds.bottom, bounds.right, bounds.top
-                center_lat = (min_lat + max_lat) / 2
-                center_lon = (min_lon + max_lon) / 2
-                
-                m = folium.Map(location=[center_lat, center_lon], zoom_start=9, tiles="CartoDB positron")
-                
-                folium.raster_layers.ImageOverlay(
-                    image=rgba,
-                    bounds=[[min_lat, min_lon], [max_lat, max_lon]],
-                    opacity=0.7,
-                    name="Risk Haritası"
-                ).add_to(m)
-                
-                st_folium(m, width=900, height=600, returned_objects=[])
-        else:
-            st.warning("TIFF dosyası bulunamadı. Lütfen analizleri çalıştırın.")
 
-elif page == "Kriterler ve Etki":
-    st.markdown('<p class="main-header">Model Kriterleri ve Ağırlıklar</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    Model 9 farklı kriterden oluşmaktadır. Ağırlıklar özvektör (eigenvector) yöntemiyle hesaplanmış olup 
-    tutarlılık oranı **CR = 0.0093** (eşik 0.10) olarak bulunmuştur.
-    """)
-    
-    criteria_path = os.path.join(FIGURES_DIR, "criteria_panel_steep_riskier.png")
-    if os.path.exists(criteria_path):
-        st.image(criteria_path, use_container_width=True, caption="Kriter Katmanları (Normalize Edilmiş)")
+        png = WEB_DATA_DIR / Path(overlay["url"]).name
+        (south, west), (north, east) = overlay["bounds"]
 
-elif page == "Zaman Serisi (NDVI & SPI)":
-    st.markdown('<p class="main-header">Zaman Serisi Analizleri</p>', unsafe_allow_html=True)
-    
-    st.subheader("68 Yıllık İklim Geçmişi (SPI)")
-    spi_path = os.path.join(FIGURES_DIR, "spi_series.png")
-    if os.path.exists(spi_path):
-        st.image(spi_path, use_container_width=True, caption="1958-2025 Standartlaştırılmış Yağış İndeksi (SPI)")
-        
-    st.markdown("---")
-    
-    st.subheader("Parsel Bazlı Mevsimsel Değişim (NDVI)")
-    col1, col2 = st.columns([1, 1])
-    
-    with col1:
-        ndvi_anim = os.path.join(FIGURES_DIR, "ndvi_animation_2024.gif")
-        if os.path.exists(ndvi_anim):
-            st.image(ndvi_anim, caption="Aylık Bitki Örtüsü Değişimi (2024)")
-            
-    with col2:
-        ndvi_curve = os.path.join(FIGURES_DIR, "ndvi_parcel_curves_2024.png")
-        if os.path.exists(ndvi_curve):
-            st.image(ndvi_curve, caption="Arazi Örtüsüne Göre Ortalama NDVI Eğrileri")
-            st.markdown("""
-            **Önemli Bulgu:** Tarım alanları (mavi) yazın ortasında en yüksek yeşilliğe (NDVI) ulaşıyor. 
-            Oysa bu dönem havzanın en kurak dönemi. Bu durum, bitkilerin yağışa değil **sulamaya (Demirköprü Barajı)** bağımlı olduğunu kanıtlar.
-            """)
+        # Kaplama EPSG:4326'ya yeniden projekte edilmiş halde geliyor;
+        # sınırlar da aynı dönüşümden. Raster'ın kendi UTM sınırlarını
+        # doğrudan folium'a vermek haritayı dünyanın başka yerine düşürür.
+        fmap = folium.Map(
+            location=[(south + north) / 2, (west + east) / 2],
+            zoom_start=10,
+            tiles="CartoDB positron",
+        )
+        folium.raster_layers.ImageOverlay(
+            image=str(png),
+            bounds=[[south, west], [north, east]],
+            opacity=0.75,
+            name="Risk sınıfı",
+        ).add_to(fmap)
+        folium.LayerControl(collapsed=False).add_to(fmap)
+        fmap.fit_bounds([[south, west], [north, east]])
+        # st_folium kendi imzasına sahip: `width` bir tamsayı, Streamlit'in
+        # "stretch" değerini kabul etmez. Genişletme ayrı bayrakla yapılır.
+        st_folium(fmap, use_container_width=True, height=560, returned_objects=[])
 
-elif page == "Doğrulama ve Analiz":
-    st.markdown('<p class="main-header">Model Doğrulaması (Validation)</p>', unsafe_allow_html=True)
-    
-    st.markdown("""
-    Bu projenin en güçlü yönü, AHP sonuçlarını bağımsız uydu ve iklim verileriyle (ET/PET ve geçmiş Landsat uydu görüntüleri) acımasızca sınamış olmasıdır.
-    """)
-    
-    st.subheader("Sulama Şebekesinin Koruyucu Etkisi")
-    irr_path = os.path.join(FIGURES_DIR, "summary_irrigation.png")
-    
-    if os.path.exists(irr_path):
-        st.image(irr_path, use_container_width=True)
+        # Lejant: renkler config.yaml'daki ordinal paletten, JSON üzerinden.
+        swatches = "".join(
+            "<div style='display:flex;align-items:center;gap:8px;font-size:13px'>"
+            f"<span style='width:14px;height:14px;border-radius:3px;"
+            f"background:{c['color']};display:inline-block'></span>"
+            f"<span>{c['label']}</span>"
+            f"<span style='margin-left:auto;font-variant-numeric:tabular-nums'>"
+            f"{tr_pct(c['share_pct'])}</span></div>"
+            for c in CLS["classes"]
+        )
+        st.markdown(
+            "<div style='display:flex;flex-direction:column;gap:4px;max-width:320px'>"
+            f"{swatches}</div>",
+            unsafe_allow_html=True,
+        )
     else:
-        st.info("Kurak yıllarda tarım alanı NDVI anomalisi, sulama şebekesine uzaklaştıkça **10 kat daha fazla** düşmektedir. Model bunu başarıyla yakaladı.")
+        if view == "Etkileşimli":
+            st.warning(
+                "Etkileşimli kaplama üretilmemiş (risk raster'ı yerelde yok). "
+                "Statik figür gösteriliyor."
+            )
+        show_figure(
+            f"risk_map_{D['scenario']}.png",
+            "5 sınıflı kuraklık risk haritası",
+        )
 
-    st.subheader("Kuraklık İzleme: NDVI Anomalisi")
-    anomaly_path = os.path.join(FIGURES_DIR, "ndvi_anomaly_2024.png")
-    if os.path.exists(anomaly_path):
-        st.image(anomaly_path, use_container_width=True, caption="Normalden sapmayı gösteren Z-skoru")
+    st.subheader("Risk sınıfı dağılımı")
+    dist = pd.DataFrame(CLS["classes"])[
+        ["label", "upper_bound", "pixels", "area_km2", "share_pct"]
+    ].rename(
+        columns={
+            "label": "Sınıf",
+            "upper_bound": "Üst sınır",
+            "pixels": "Piksel",
+            "area_km2": "Alan (km²)",
+            "share_pct": "Pay (%)",
+        }
+    )
+    st.dataframe(
+        dist,
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "Pay (%)": st.column_config.ProgressColumn(
+                "Pay (%)", format="%.1f%%", min_value=0, max_value=100
+            )
+        },
+    )
+
+    src = CLS.get("source_raster")
+    if src:
+        note = f"Paylar `{src}` dosyasından sayıldı."
+        if CLS.get("report_is_stale"):
+            note += (
+                f" Sınıf sınırları boş: `outputs/reports/ahp_{D['scenario']}.md` "
+                "bu raster'dan eski."
+            )
+        st.caption(note)
+
+# --- Kriterler --------------------------------------------------------------
+
+elif page == "Kriterler ve ağırlıklar":
+    st.title("Model kriterleri ve ağırlıklar")
+    st.markdown(
+        f"Ağırlıklar {AHP['n_criteria']}×{AHP['n_criteria']} ikili karşılaştırma "
+        f"matrisinden özvektör yöntemiyle türetildi. "
+        f"λmax = {AHP['lambda_max']:.4f}, CI = {AHP['consistency_index']:.4f}, "
+        f"**CR = {AHP['consistency_ratio']:.4f}** (eşik {AHP['cr_threshold']:.2f})."
+    )
+
+    crit = pd.DataFrame(
+        [
+            {
+                "Kriter": c["label"],
+                "Anahtar": c["key"],
+                "Ağırlık (%)": round(c["weight"] * 100, 1),
+                "Efektif katkı (%)": c["effective_pct"],
+                "Sağlayıcı": (c.get("source") or {}).get("provider") or "—",
+                "Koleksiyon": (c.get("source") or {}).get("collection") or "—",
+            }
+            for c in AHP["criteria"]
+        ]
+    )
+
+    st.subheader("Nominal ağırlık ve efektif katkı")
+    st.bar_chart(
+        crit.set_index("Kriter")[["Ağırlık (%)", "Efektif katkı (%)"]],
+        horizontal=True,
+        height=380,
+    )
+    st.caption(
+        "Efektif katkı = ağırlıkla çarpılmış değerlerin standart sapma payı. "
+        "Nominal ağırlığının belirgin altında kalan bir kriter, havzada "
+        "ölçeğinin tamamını kullanmıyor demektir."
+    )
+
+    st.dataframe(crit, hide_index=True, width="stretch")
+
+    gap = crit.assign(fark=crit["Ağırlık (%)"] - crit["Efektif katkı (%)"]).nlargest(
+        1, "fark"
+    )
+    if not gap.empty and gap.iloc[0]["fark"] > 1.5:
+        row = gap.iloc[0]
+        st.info(
+            f"**{row['Kriter']}** nominal %{row['Ağırlık (%)']:.1f} ağırlığa sahip "
+            f"ama efektif katkısı %{row['Efektif katkı (%)']:.1f}. "
+            "Kriterin ölçeği var, havzadaki değişkenliği yok."
+        )
+
+    st.subheader("Kriter katmanları")
+    show_figure(
+        f"criteria_panel_{D['scenario']}.png",
+        "Normalize edilmiş kriter katmanları (0–1)",
+    )
+
+# --- Zaman serisi -----------------------------------------------------------
+
+elif page == "Zaman serisi":
+    st.title("Zaman serisi analizleri")
+
+    st.subheader("68 yıllık iklim geçmişi (SPI)")
+    show_figure("spi_series.png", "1958–2025 Standartlaştırılmış Yağış İndeksi")
+    st.markdown(
+        "SPI (McKee ve ark. 1993) TerraClimate yağış serisinden hesaplanıyor. "
+        "Doğrulama: ortalama −0,000, standart sapma 1,000. Bağımsız "
+        "formülasyonlu PDSI ile r = 0,782."
+    )
+
+    st.divider()
+    st.subheader("Parsel bazlı mevsimsel değişim (NDVI)")
+    col1, col2 = st.columns(2)
+    with col1:
+        show_figure("ndvi_animation_2024.gif", "Aylık bitki örtüsü değişimi (2024)")
+    with col2:
+        show_figure("ndvi_parcel_curves_2024.png", "Arazi örtüsüne göre NDVI eğrileri")
+        st.markdown(
+            "**Bulgu:** tarım alanları temmuzda zirve yapıyor — havzanın en "
+            "kurak dönemi. Bu, yağışa değil **sulamaya** dayalı bir tarım "
+            "demek. Mera tam tersi: nisanda zirve, ağustosta dip."
+        )
+
+    if D.get("operational_years"):
+        st.divider()
+        st.subheader("Yıl bazında kuraklık şiddeti ve gözlenen etki")
+        ops = pd.DataFrame(D["operational_years"])
+        st.bar_chart(ops.set_index("year")[["spi"]], height=240)
+        st.caption("SPI-12: negatif değerler kurak yılları gösterir.")
+        st.dataframe(
+            ops.rename(
+                columns={
+                    "year": "Yıl",
+                    "spi": "SPI",
+                    "dry": "Kurak",
+                    "mean_anomaly": "Ort. anomali",
+                    "risk_anomaly_rho": "risk–anomali ρ",
+                    "monotonic": "Monoton",
+                }
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+
+# --- Doğrulama --------------------------------------------------------------
+
+else:
+    st.title("Doğrulama ve sınırlılıklar")
+    st.markdown(
+        "Bu projenin ayırt edici yönü, AHP sonuçlarını bağımsız uydu ve iklim "
+        "verisiyle sınamış ve **olumsuz sonucu raporlamış** olması."
+    )
+
+    if D.get("irrigation_effect"):
+        st.subheader("Sulama, NDVI'daki kuraklık sinyalini maskeliyor")
+        irr = pd.DataFrame(D["irrigation_effect"]).sort_values("year")
+        chart_df = irr.set_index("year")[["near_canal", "far_from_canal"]].rename(
+            columns={
+                "near_canal": "Kanala < 2 km",
+                "far_from_canal": "Kanaldan > 10 km",
+            }
+        )
+        st.bar_chart(chart_df, height=300)
+
+        st.dataframe(
+            irr.rename(
+                columns={
+                    "year": "Yıl",
+                    "condition": "Durum",
+                    "near_canal": "Kanala < 2 km",
+                    "far_from_canal": "Kanaldan > 10 km",
+                }
+            )[["Yıl", "Durum", "Kanala < 2 km", "Kanaldan > 10 km"]],
+            hide_index=True,
+            width="stretch",
+        )
+        st.success(
+            "Yağmura bağlı tarım, kurak yıllarda sulanan tarımdan 3–10 kat "
+            "fazla NDVI kaybediyor. Yağışlı yılda iki grup arasında fark yok — "
+            "fark yalnızca stres varken ortaya çıkıyor."
+        )
+        st.warning(
+            "Metodolojik sonuç: **sulanan bir havzada NDVI, tarımsal kuraklık "
+            "etkisini ölçemez.** Çiftçi sularsa yeşillik korunur; etki suya, "
+            "maliyete ve rezervuar seviyesine yansır, spektruma değil."
+        )
+        show_figure("summary_irrigation.png")
+
+    st.divider()
+    st.subheader("Mekânsal kuraklık izleme")
+    show_figure("ndvi_anomaly_2024.png", "2024 NDVI anomalisi (leave-one-out z-skoru)")
+
+    st.divider()
+    st.subheader("Geçemediği sınama")
+    st.error(
+        "**AHP risk haritası, kuraklıkta bitki örtüsünün nerede zarar "
+        "göreceğini öngörmüyor.** Landsat 5 ile 27 yıl / 7 gerçek kurak yıl "
+        "(1985–2011) sınandı: kurak yıl ortalama ρ = −0,021 — sıralama yok. "
+        "İkinci ve bağımsız bir etki ölçüsü (ET/PET) aynı sonucu verdi "
+        "(ρ = +0,050). 'Düşük değişkenlikli kriterler bozuyor' hipotezi "
+        "kuruldu ve reddedildi."
+    )
+    st.markdown(
+        "Model iç tutarlılık ölçütlerinin hepsini geçiyor — CR, k-means "
+        "çapraz kontrolü, ağırlık duyarlılığı. Literatürdeki AHP kuraklık "
+        "haritalarının büyük kısmı tam da burada durur. **İç tutarlılık, "
+        "geçerlilik değildir.**"
+    )
+
+    # Adım 13 raporu etki ölçüsüne göre ayrı dosyalara yazar
+    # (historical_test_ndvi.md / historical_test_et.md). Eskiden tek bir
+    # historical_test.md vardı; o ad artık üretilmiyor.
+    for name in (
+        "validation_report.md",
+        "ahp_steep_riskier.md",
+        "historical_test_ndvi.md",
+        "historical_test_et.md",
+        "ml_baseline_physical.md",
+    ):
+        path = REPORTS_DIR / name
+        if path.exists():
+            with st.expander(f"Tam rapor — {name}"):
+                st.markdown(path.read_text(encoding="utf-8"))
