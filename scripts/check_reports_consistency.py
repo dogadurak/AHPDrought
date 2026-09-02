@@ -63,6 +63,8 @@ CHECKS = (
           r"Kurak yıllar\s+\(n=\d+\): ortalama r = ([+-]\d+\.\d+)"),
     Check("ET/PET kurak yıl ρ", "historical_test_et.md",
           r"Kurak yıllar\s+\(n=\d+\): ortalama r = ([+-]\d+\.\d+)"),
+    Check("Yüzey sıcaklığı kurak yıl ρ", "historical_test_lst.md",
+          r"Kurak yıllar\s+\(n=\d+\): ortalama r = ([+-]\d+\.\d+)"),
     Check("Random Forest ortalama R²", "ml_baseline_physical.md",
           r"\*\*ortalama\*\* \| \*\*([+-]\d+\.\d+)\*\*"),
     Check("Hipotez sınaması alt küme ρ", "low_variance_hypothesis.md",

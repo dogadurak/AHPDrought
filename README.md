@@ -56,6 +56,7 @@ projenin asıl bulgusu ve gizlenmedi.
 | ET/PET sıralaması | bağımsız MODIS ürünü risk sırasını doğruluyor mu | ρ = −0,283, monoton | geçti |
 | **Gerçek kuraklıklarda mekânsal sıralama** | Landsat 5 ile 27 yıl, 7 gerçek kurak yıl (1985–2011) | **ρ = −0,023** | **desteklenmedi** |
 | İkinci bağımsız etki ölçüsü | aynı sınama ET/PET anomalisiyle tekrarlandı | ρ = +0,045 | **desteklenmedi** |
+| Üçüncü bağımsız etki ölçüsü | Landsat yüzey sıcaklığı — enerji dengesi yolu | ρ = +0,044 | **desteklenmedi** |
 | "Düşük değişkenlikli kriterler bozuyor" hipotezi | kolay mazeret kuruldu ve sınandı | −0,023 → +0,013 | **reddedildi** |
 | Fiziksel taban çizgisi | Random Forest, 100×100 mekânsal blok CV | R² = 0,133 | fiziksel değişkenler tek başına yetmiyor |
 
@@ -79,12 +80,13 @@ döner:
 | [`validation_report.md`](outputs/reports/validation_report.md) | senaryo dayanıklılığı, ET/PET sıralaması, mevsimsel genlik, arazi örtüsü ve yükseklik kuşakları |
 | [`historical_test_ndvi.md`](outputs/reports/historical_test_ndvi.md) | Landsat 27 yıl, 7 kurak yıl, yıl bazında ρ |
 | [`historical_test_et.md`](outputs/reports/historical_test_et.md) | ikinci bağımsız etki ölçüsü (ET/PET anomalisi) |
+| [`historical_test_lst.md`](outputs/reports/historical_test_lst.md) | üçüncü bağımsız etki ölçüsü (yüzey sıcaklığı) |
 | [`low_variance_hypothesis.md`](outputs/reports/low_variance_hypothesis.md) | düşük değişkenlik hipotezinin kurulumu ve hükmü |
 | [`ml_baseline_physical.md`](outputs/reports/ml_baseline_physical.md) | Random Forest kat bazında R²/RMSE/MAE, özellik önemleri |
 | [`operational_test.md`](outputs/reports/operational_test.md) | sulama etkisi, yıl bazında operasyonel sınama |
 
 Ayrıntı için aşağıdaki bölümler: **Doğrulama** (dört seviyeli kanıt),
-**Risk haritasının mekânsal sıralaması** (Landsat sınaması ve iki bağımsız etki
+**Risk haritasının mekânsal sıralaması** (Landsat sınaması ve üç bağımsız etki
 ölçüsü), **Fiziksel Risk ve Gözlemsel Stres Arasındaki Ayrışma** (Random Forest
 taban çizgisi ve tarihsel ayrışma).
 
@@ -356,15 +358,34 @@ değiştiriyor (1985: +0,32 · 1999: −0,23 · 2001: −0,28) — sinyal değil
 öngörmüyor.** Ayarlanarak geçirilmedi; aksine sınama giderek daha adil
 kuruldu ve sonuç değişmedi.
 
-#### İki bağımsız etki ölçüsü, aynı cevap
+#### Üç bağımsız etki ölçüsü, aynı cevap
 
 Sonucun "yanlış ölçü seçtik" diye açıklanabilmesini engellemek için sınama,
-tamamen farklı bir etki ölçüsüyle tekrarlandı:
+tamamen farklı etki ölçüleriyle tekrarlandı:
 
-| Etki ölçüsü | Sensör | Dönem | Kurak yıl | Kurak yıl ρ |
-|---|---|---|---:|---:|
-| NDVI (yeşillik) | Landsat 5, 30 m | 1985–2011 | 7 | −0,023 |
-| **ET/PET (su kısıtı)** | MODIS, 500 m | 2000–2024 | 3 | +0,045 |
+| Etki ölçüsü | Fiziksel yol | Sensör | Dönem | Kurak yıl | Kurak yıl ρ |
+|---|---|---|---|---:|---:|
+| NDVI (yeşillik) | optik yansıma | Landsat 5, 30 m | 1985–2011 | 7 | −0,023 |
+| **ET/PET (su kısıtı)** | su bütçesi | MODIS, 500 m | 2000–2024 | 3 | +0,045 |
+| **Yüzey sıcaklığı** | enerji dengesi | Landsat 5, 30 m | 1985–2011 | 7 | +0,044 |
+
+Üçüncü ölçü ilk ikisinin ortak zayıflığını kapatıyor: NDVI doğrudan yeşilliği
+ölçüyor, MODIS ET/PET ise LAI/FPAR kullandığı için onunla akraba. **Yüzey
+sıcaklığı bambaşka bir fiziksel yoldan ölçer** — su kısıtlanan bitki terlemeyi
+kısar, gizli ısı akısı düşer, yaprak ısınır (Idso/Jackson bitki su stresi
+indeksinin dayandığı ilke). Aynı arşiv, aynı 27 yıl, aynı 30 m.
+
+Sonuç değişmiyor: kurak yıl ortalama ρ = **+0,044**, en riskli sınıf en az
+riskliden **daha az** ısınıyor (fark +0,340, beklenen yönün tersi).
+Kaynak: [`historical_test_lst.md`](outputs/reports/historical_test_lst.md).
+
+> **Bu ölçünün kendi sınırı, raporda da yazılı:** sıcaklık serisi 1985–2011
+> boyunca ısınma eğilimi taşıyor (1989 taban çizgisinden soğuk, 2002 sıcak).
+> Sınamayı bu bozmaz — test yıl **içinde** piksel sıralaması üzerinden
+> hesaplanır ve yıla özgü sabit bir kayma sıralamayı değiştirmez. Ama ısınma
+> mekânsal olarak düzgün dağılmamışsa deseni etkileyebilir. Ayrıca sulanan
+> parsel buharlaşmayla serinlediği için bu ölçü de sulamanın maskeleme
+> etkisinden muaf değil.
 
 ET/PET, NDVI'nın aksine sulamayla maskelenmez — su kısıtını doğrudan ölçer.
 Ve **ölçü çalışıyor**: kurak yıllarda havza ortalaması doğru şekilde negatif
@@ -416,8 +437,8 @@ Dört somut çıkarım:
 
 1. **İç tutarlılık, geçerlilik değildir.** CR, k-means ve duyarlılık analizinin
    hepsini geçen bir harita, gözlenen etkiyi öngörmeyebilir.
-2. **Sonuç ölçü seçimine bağlı değil.** İki bağımsız etki ölçüsü (yeşillik ve
-   su kısıtı), iki farklı sensör, iki farklı dönem — aynı cevap.
+2. **Sonuç ölçü seçimine bağlı değil.** Üç bağımsız etki ölçüsü (yeşillik, su
+   kısıtı, yüzey sıcaklığı), üç farklı fiziksel yol — aynı cevap.
 3. **Sonuç kriter seçimine de bağlı değil.** Neredeyse sabit kriterleri çıkarıp
    yeniden ağırlıklandırmak düzeltmedi.
 4. **Doğrulama, uydu arşivinin kapsadığı dönemle sınırlıdır.** Bu havzanın
