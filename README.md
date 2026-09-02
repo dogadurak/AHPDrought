@@ -1,21 +1,92 @@
 # AHP Tabanlı Tarımsal Kuraklık Risk Haritalama — Gediz Havzası
 
+[![tests](https://github.com/dogadurak/AHPDr/actions/workflows/test.yml/badge.svg)](https://github.com/dogadurak/AHPDr/actions/workflows/test.yml)
+[![web](https://github.com/dogadurak/AHPDr/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/dogadurak/AHPDr/actions/workflows/deploy-web.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
+
 Çok Kriterli Karar Verme (AHP) ile üretilen 5 sınıflı tarımsal kuraklık risk
 haritası, duyarlılık analizi ve NDVI zaman serisi görselleştirmesi.
 
+**Kapsam:** 18 analiz adımı · ~11.000 satır Python · 296 test · iki CI iş akışı
+/ üç iş (birim testleri · veri sağlayıcı sözleşmesi · Pages dağıtımı) · anahtar
+gerektirmeyen açık veri · iki arayüz, tek veri dosyası.
+
+> **In brief (EN).** A nine-criterion AHP drought-risk map for the Gediz basin
+> (Türkiye) at 30 m, built entirely from key-free open data, then tested against
+> independent satellite observations across 1985–2025. The map passes every
+> internal-consistency check (CR = 0.0093, 100% k-means agreement, ±10% weight
+> sensitivity ≥ 92.4%) — and **fails** to predict where vegetation actually
+> suffers during real droughts (Spearman ρ = −0.021 over seven drought years).
+> The negative result is reported rather than hidden, together with the two
+> independent impact measures and the rejected explanatory hypothesis that
+> rule out the easy excuses. Full write-up below (Turkish).
+
 **Pilot bölge:** Gediz Havzası, Manisa — Salihli / Alaşehir / Sarıgöl hattı
-(Demirköprü Barajı membaı dahil), 27.6°E–28.6°E, 38.2°N–38.7°N → **4.842 km²**,
+(Demirköprü Barajı membaı dahil), 27.6°E–28.6°E, 38.2°N–38.7°N → **4.974 km²**,
 30 m çözünürlükte 5,53 milyon hücre.  
 **Referans dönemi:** 2017–2025 (9 yıl) · **İklim serisi:** 1958–2025 (68 yıl)
 
 ![Kuraklık risk haritası](outputs/figures/risk_map_steep_riskier.png)
 
-> **📊 Görsel özet:** Bütün bulgular tek sayfada —
+> **🌐 Etkileşimli vitrin:** <https://dogadurak.github.io/AHPDr/> — harita,
+> AHP ağırlıkları, sulama etkisi ve doğrulamanın olumsuz sonucu.
+> *(GitHub Pages'i Settings → Pages → Source: GitHub Actions ile bir kez açmak
+> gerekiyor.)*
+>
+> **📊 Statik görsel özet:** bütün bulgular tek sayfada —
 > [claude.ai/code/artifact/169dfe78-f7a6-400b-bc4d-b4101939202a](https://claude.ai/code/artifact/169dfe78-f7a6-400b-bc4d-b4101939202a)
 > (şablon: [`docs/ozet_sablon.html`](docs/ozet_sablon.html), grafikler:
 > [`src/visualize_summary.py`](src/visualize_summary.py))
 
 ---
+
+## Ölçümler — bir bakışta
+
+Harita, iç tutarlılık sınamalarının **hepsini** geçiyor. Gözlenen kuraklık
+etkisini öngörme sınamasını **geçemiyor**. İkisi de aşağıda; ikincisi bu
+projenin asıl bulgusu ve gizlenmedi.
+
+| Sınama | Ne ölçüyor | Ölçüm | Hüküm |
+|---|---|---:|---|
+| Tutarlılık oranı (CR) | 9×9 ikili karşılaştırma matrisi kendi içinde tutarlı mı | 0,0093 (eşik 0,10) | geçti |
+| k-means uyumu | bağımsız bir sınıflandırma aynı sınırları buluyor mu | %99,7 | geçti |
+| Ağırlık duyarlılığı | her ağırlık ±%10 oynatılınca sınıflar korunuyor mu | en kötü %93,1 piksel aynı sınıfta | geçti |
+| Senaryo dayanıklılığı | eğimin tartışmalı risk yönü sonucu altüst ediyor mu | %79,4 aynı sınıf · %100'ü ≤ 1 sınıf | geçti |
+| ET/PET sıralaması | bağımsız MODIS ürünü risk sırasını doğruluyor mu | ρ = −0,283, monoton | geçti |
+| **Gerçek kuraklıklarda mekânsal sıralama** | Landsat 5 ile 27 yıl, 7 gerçek kurak yıl (1985–2011) | **ρ = −0,023** | **desteklenmedi** |
+| İkinci bağımsız etki ölçüsü | aynı sınama ET/PET anomalisiyle tekrarlandı | ρ = +0,045 | **desteklenmedi** |
+| "Düşük değişkenlikli kriterler bozuyor" hipotezi | kolay mazeret kuruldu ve sınandı | −0,023 → +0,013 | **reddedildi** |
+| Fiziksel taban çizgisi | Random Forest, 100×100 mekânsal blok CV | R² = 0,133 | fiziksel değişkenler tek başına yetmiyor |
+
+**İç tutarlılık, geçerlilik değildir.** CR'yi, k-means'i ve duyarlılık
+analizini geçen bir harita, kuraklıkta bitki örtüsünün nerede zarar göreceğini
+öngörmeyebilir — burada öngörmüyor. Sonuç ne ölçü seçimine bağlı (iki bağımsız
+etki ölçüsü, iki sensör, iki dönem, aynı cevap) ne de kriter seçimine (neredeyse
+sabit kriterler çıkarılıp yeniden ağırlıklandırıldı, düzelmedi). Geriye kalan en
+makul açıklama — bu projede sınanamadı — 30 m ölçekte etkiyi belirleyen şeyin
+fiziksel duyarlılıktan çok **parsel düzeyi yönetim kararları** olduğudur.
+
+**Her sayının bir dosyası var ve bu denetleniyor.** Yukarıdaki tablonun
+tamamı aşağıdaki raporlardan okunur; hiçbiri yalnızca konsola basılmaz.
+`python -m scripts.check_reports_consistency` bu belgedeki sayıların üreten
+raporla aynı olduğunu her CI koşusunda sınar — saptığı anda testler kırmızıya
+döner:
+
+| Rapor | İçindeki ölçümler |
+|---|---|
+| [`ahp_steep_riskier.md`](outputs/reports/ahp_steep_riskier.md) | ağırlıklar, CR, efektif katkı, sınıf payları, ±%10 duyarlılık tablosu (18 senaryo), k-means uyumu |
+| [`validation_report.md`](outputs/reports/validation_report.md) | senaryo dayanıklılığı, ET/PET sıralaması, mevsimsel genlik, arazi örtüsü ve yükseklik kuşakları |
+| [`historical_test_ndvi.md`](outputs/reports/historical_test_ndvi.md) | Landsat 27 yıl, 7 kurak yıl, yıl bazında ρ |
+| [`historical_test_et.md`](outputs/reports/historical_test_et.md) | ikinci bağımsız etki ölçüsü (ET/PET anomalisi) |
+| [`low_variance_hypothesis.md`](outputs/reports/low_variance_hypothesis.md) | düşük değişkenlik hipotezinin kurulumu ve hükmü |
+| [`ml_baseline_physical.md`](outputs/reports/ml_baseline_physical.md) | Random Forest kat bazında R²/RMSE/MAE, özellik önemleri |
+| [`operational_test.md`](outputs/reports/operational_test.md) | sulama etkisi, yıl bazında operasyonel sınama |
+
+Ayrıntı için aşağıdaki bölümler: **Doğrulama** (dört seviyeli kanıt),
+**Risk haritasının mekânsal sıralaması** (Landsat sınaması ve iki bağımsız etki
+ölçüsü), **Fiziksel Risk ve Gözlemsel Stres Arasındaki Ayrışma** (Random Forest
+taban çizgisi ve tarihsel ayrışma).
 
 ## Sonuçlar
 
@@ -24,12 +95,12 @@ türetildi, tutarlılık oranı **CR = 0.0093** (eşik 0.10):
 
 | Kriter | Ağırlık | Efektif katkı | Kaynak |
 |---|---:|---:|---|
-| Kurak dönem yağışı | 0,213 | %20,3 | CHIRPS v2.0 (~5,5 km) |
-| Sulama altyapısına mesafe | 0,178 | %16,0 | OpenStreetMap kanal ağı |
-| Kurak dönem NDVI | 0,158 | %20,9 | Sentinel-2 L2A (10 m) |
+| Kurak dönem yağışı | 0,213 | %24,3 | CHIRPS v2.0 (~5,5 km) |
+| Sulama altyapısına mesafe | 0,178 | %16,1 | OpenStreetMap kanal ağı |
+| Kurak dönem NDVI | 0,158 | %16,5 | Sentinel-2 L2A (10 m) |
 | Toprak yarayışlı su kapasitesi | 0,134 | %12,2 | SoilGrids 2.0 (250 m) |
-| Yüzey sıcaklığı (LST) | 0,112 | %11,4 | MODIS MYD11A2 (1 km) |
-| Arazi örtüsü duyarlılığı | 0,084 | %8,9 | ESA WorldCover 2021 (10 m) |
+| Yüzey sıcaklığı (LST) | 0,112 | %11,5 | MODIS MYD11A2 (1 km) |
+| Arazi örtüsü duyarlılığı | 0,084 | %9,0 | ESA WorldCover 2021 (10 m) |
 | Doğal yüzey suyuna mesafe | 0,052 | %2,6 | OpenStreetMap |
 | Eğim | 0,043 | %4,6 | Copernicus DEM GLO-30 |
 | Bakı (güneylilik) | 0,025 | %3,1 | Copernicus DEM GLO-30 |
@@ -44,20 +115,23 @@ suya yakın, skorlar 0–0,74 bandına sıkışıyor.
 
 | Sınıf | Alan | Pay |
 |---|---:|---:|
-| Çok düşük | 596 km² | %12,9 |
-| Düşük | 1.125 km² | %24,3 |
-| Orta | 1.361 km² | %29,4 |
-| Yüksek | 1.045 km² | %22,5 |
-| Çok yüksek | 508 km² | %11,0 |
+| Çok düşük | 687,5 km² | %14,8 |
+| Düşük | 1.198,8 km² | %25,9 |
+| Orta | 1.327,2 km² | %28,6 |
+| Yüksek | 992,4 km² | %21,4 |
+| Çok yüksek | 429,0 km² | %9,3 |
 
-Bağımsız k-means sınıflandırmasıyla **%100,0 uyum** — sınıflar yöntem seçimine
-değil verinin kendi yapısına dayanıyor.
+Toplam 4.635,0 km² sınıflandırıldı; 339,2 km² (yerleşim, su yüzeyi, veri boşluğu)
+maskelendi. Bağımsız k-means sınıflandırmasıyla **%99,7 uyum** — sınıflar yöntem
+seçimine değil verinin kendi yapısına dayanıyor. Kaynak:
+[`outputs/reports/ahp_steep_riskier.md`](outputs/reports/ahp_steep_riskier.md).
 
 ### Duyarlılık analizi
 
 Her ağırlık ±%10 değiştirildiğinde 5 sınıflı haritada aynı sınıfta kalan piksel
-oranı **en kötü %92,4** (yağış −%10), en iyi %99,2 (bakı). Spearman sıra
-korelasyonu hiçbir senaryoda 0,996'nın altına düşmüyor.
+oranı **en kötü %93,1** (yağış −%10), en iyi %99,3 (bakı). Spearman sıra
+korelasyonu hiçbir senaryoda 0,997'nin altına düşmüyor. On sekiz senaryonun
+tamamı raporun 4. bölümünde.
 
 ### Sulamanın eklenmesi haritayı nasıl değiştirdi
 
@@ -69,6 +143,13 @@ değiştirdi:
 | Tarım alanının ortalama riski | 0,536 | 0,531 |
 | Meranın ortalama riski | 0,536 | 0,576 |
 | En riskli yükseklik kuşağı | 33–128 m (ova) | 302–563 m (etek) |
+
+> Bu tablonun iki sütunu da **aynı çalıştırmadan** gelir. Risk indeksi o tarihten
+> sonra yeniden hesaplandığı için mutlak değerler kaydı; güncel 9 kriterli ölçüm
+> tarım **0,395**, mera **0,439**, en riskli kuşak **563–860 m**
+> ([`validation_report.md`](outputs/reports/validation_report.md)). Bulgunun yönü
+> değişmedi: tarım hâlâ meranın altında, zirve hâlâ ova tabanında değil. İki
+> ölçümü karıştırmamak için tablo kendi çalıştırmasıyla bırakıldı.
 
 Önceden tarım ve mera **aynı** riskte çıkıyordu ve en riskli yer ova tabanıydı.
 Sulama eklenince tarım meranın altına indi ve risk zirvesi ovadan yamaç eteğine
@@ -111,8 +192,8 @@ Sayısal tablo: [`outputs/figures/ndvi_parcel_curves_2024.md`](outputs/figures/n
 her seviyenin kanıt değerini açıkça bildiriyor:
 
 **1. Senaryo dayanıklılığı** — eğimin risk yönü literatürde tartışmalı olduğu
-için iki senaryo da üretiliyor. Sonuç: piksellerin **%78,0'i aynı sınıfta**,
-**%100'ü en fazla 1 sınıf** kayıyor. Tartışmalı karar sonucu değiştiriyor ama
+için iki senaryo da üretiliyor. Sonuç: piksellerin **%79,4'ü aynı sınıfta**,
+**%100'ü en fazla 1 sınıf** kayıyor (ortalama indeks farkı 0,018, maksimum 0,038). Tartışmalı karar sonucu değiştiriyor ama
 altüst etmiyor.
 
 **2. Buharlaşma oranı ET/PET — BAĞIMSIZ.** MODIS MOD16A3GF yıllık
@@ -122,27 +203,27 @@ değil. Beklenti: risk arttıkça ET/PET azalmalı.
 
 | Risk sınıfı | Ortalama ET/PET |
 |---|---:|
-| Çok düşük | 0,285 |
-| Düşük | 0,275 |
-| Orta | 0,260 |
+| Çok düşük | 0,277 |
+| Düşük | 0,268 |
+| Orta | 0,256 |
 | Yüksek | 0,237 |
-| Çok yüksek | 0,236 |
+| Çok yüksek | 0,235 |
 
-Monoton azalıyor; risk indeksiyle Spearman ρ = **−0,331**. Korelasyonun orta
+Monoton azalıyor; risk indeksiyle Spearman ρ = **−0,283**. Korelasyonun orta
 şiddette olması beklenen bir sonuç — 9 kriterli bir risk indeksinin tek bir
 buharlaşma oranını birebir öngörmesi zaten beklenmezdi. Asıl anlamlı olan sınıf
 sıralamasının monoton çıkması. **Dürüstlük notu:** 4. ve 5. sınıf arasındaki
-fark (0,237 → 0,236) neredeyse yok; model en riskli iki sınıfı bu eksende
+fark (0,237 → 0,235) neredeyse yok; model en riskli iki sınıfı bu eksende
 ayıramıyor. Ayrıca MOD16 MODIS LAI/FPAR kullandığı için bitki örtüsüyle
 akrabalığı sıfır değil — "tamamen bağımsız" denemez.
 
 **3. Mevsimsel NDVI genliği (yarı bağımsız)** — ilkbahar tepe ile yaz dip NDVI
-farkı: 0,043 → 0,112 → 0,174 → 0,251 → 0,350. Monoton artıyor. Kriter olarak
+farkı: 0,053 → 0,130 → 0,183 → 0,255 → 0,327. Monoton artıyor. Kriter olarak
 kullanılan *NDVI seviyesinden* farklı bir büyüklük ama aynı sensörden türediği
 için kanıt değeri (2)'ninkinden düşük.
 
-**4. Katmanlı özet** — arazi örtüsüne göre risk: çıplak toprak (0,619) > mera
-(0,576) > çalılık (0,564) > **tarım (0,531)** > orman (0,501). Tarımın meranın
+**4. Katmanlı özet** — arazi örtüsüne göre risk: çıplak toprak (0,458) > mera
+(0,439) > çalılık (0,430) > **tarım (0,395)** > orman (0,383). Tarımın meranın
 altına inmesi sulama kriterinin eseri ve doğru.
 
 ### Hâlâ eksik olan
@@ -233,7 +314,7 @@ Kurak yıllarda tarım alanı NDVI anomalisi, sulama şebekesine olan mesafeye g
 | 2025 (kurak) | −0,0151 | **−0,0315** | 2× |
 | 2023 (yağışlı) | +0,0146 | +0,0177 | **fark yok** |
 
-Yağmura bağlı tarım, kurak yıllarda sulanan tarımdan **3–10 kat fazla** NDVI
+Yağmura bağlı tarım, kurak yıllarda sulanan tarımdan **2–10 kat fazla** NDVI
 kaybediyor; yağışlı yılda iki grup arasında fark yok. Fark yalnızca stres varken
 ortaya çıkıyor — yani bu, sulama kriterinin bağımsız gözlemle doğrulanmasıdır.
 
@@ -252,7 +333,7 @@ kuraklıklarını kapsıyor.
 |---|---:|---:|---:|---|
 | Sentinel-2, tek yıl, z-skoru | 1 | −0,096 | — | karar verilemez |
 | Sentinel-2, 9 yıl, ham fark, tarım | 1 | −0,057 | −0,046 | karar verilemez |
-| **Landsat, 27 yıl, ham fark, tarım** | **7** | **−0,021** | −0,057 | **DESTEKLENMEDİ** |
+| **Landsat, 27 yıl, ham fark, tarım** | **7** | **−0,023** | −0,058 | **DESTEKLENMEDİ** |
 
 Landsat sınamasındaki kurak yıllar havzanın en ağırları: **1989** (SPI-12 −2,45),
 **2001** (−2,30), **2007** (−2,35), **1992** (−1,90), ayrıca 1990, 1994, 2008.
@@ -261,14 +342,15 @@ Kurak yıllarda risk sınıflarının ortalama NDVI anomalisi:
 
 | Sınıf | Kurak yıllar |
 |---|---:|
-| Çok düşük | −0,0218 |
-| Düşük | −0,0315 |
-| Orta | −0,0310 |
-| Yüksek | −0,0245 |
-| Çok yüksek | −0,0203 |
+| Çok düşük | −0,0232 |
+| Düşük | −0,0323 |
+| Orta | −0,0299 |
+| Yüksek | −0,0226 |
+| Çok yüksek | −0,0206 |
 
-Düz. Sıralama yok. Yıl bazında korelasyonlar rastgele işaret değiştiriyor
-(1985: +0,33 · 1999: −0,24 · 2001: −0,28) — sinyal değil gürültü.
+Düz. Sıralama yok — en riskli sınıf en az riskliden **daha az** NDVI kaybediyor
+(fark +0,0026, beklenen yönün tersi). Yıl bazında korelasyonlar rastgele işaret
+değiştiriyor (1985: +0,32 · 1999: −0,23 · 2001: −0,28) — sinyal değil gürültü.
 
 **Yani: AHP risk haritası, kuraklıkta bitki örtüsünün nerede zarar göreceğini
 öngörmüyor.** Ayarlanarak geçirilmedi; aksine sınama giderek daha adil
@@ -281,8 +363,8 @@ tamamen farklı bir etki ölçüsüyle tekrarlandı:
 
 | Etki ölçüsü | Sensör | Dönem | Kurak yıl | Kurak yıl ρ |
 |---|---|---|---:|---:|
-| NDVI (yeşillik) | Landsat 5, 30 m | 1985–2011 | 7 | −0,021 |
-| **ET/PET (su kısıtı)** | MODIS, 500 m | 2000–2024 | 3 | +0,050 |
+| NDVI (yeşillik) | Landsat 5, 30 m | 1985–2011 | 7 | −0,023 |
+| **ET/PET (su kısıtı)** | MODIS, 500 m | 2000–2024 | 3 | +0,045 |
 
 ET/PET, NDVI'nın aksine sulamayla maskelenmez — su kısıtını doğrudan ölçer.
 Ve **ölçü çalışıyor**: kurak yıllarda havza ortalaması doğru şekilde negatif
@@ -311,15 +393,21 @@ normalizasyon bunların küçük gerçek farkını 0–1 aralığına geriyor: 4
 **Hipotez:** harita bu yüzden ayrım üretemiyor.
 **Sınama:** yalnızca gerçekten değişen kriterlerle (sulama, NDVI, arazi örtüsü,
 su mesafesi, eğim, bakı) yeniden ağırlıklandırılmış harita kuruldu.
-**Sonuç:** kurak yıl ortalama ρ −0,021 → **+0,033**. Düzelmedi, hatta işareti
+**Sonuç:** kurak yıl ortalama ρ −0,023 → **+0,013**. Düzelmedi, hatta işareti
 ters döndü. **Hipotez reddedildi.**
+
+Sınama, Adım 13'ün eşiğini aynen kullanır (ρ ≤ −0,10): sayının biraz oynaması
+hipotezi desteklemeye yetmez. Kurulum, ağırlıklar ve katmanların havza içi
+standart sapmaları
+[`outputs/reports/low_variance_hypothesis.md`](outputs/reports/low_variance_hypothesis.md)
+dosyasında; yeniden üretmek için `python -m scripts.step17_low_variance_hypothesis`.
 
 Düşük değişkenlik teşhisi doğru, ama başarısızlığın sebebi o değil.
 
 #### Bu neden bir katkı, kusur değil
 
 Model iç tutarlılık ölçütlerinin hepsini geçiyor: CR = 0,0093, k-means uyumu
-%100, ağırlık duyarlılığı %92,4. Literatürdeki AHP kuraklık haritalarının
+%99,7, ağırlık duyarlılığı %93,1. Literatürdeki AHP kuraklık haritalarının
 büyük kısmı **tam da burada durur** — duyarlılık analizi yapılır, gözlenen
 etkiyle karşılaştırma yapılmaz. Bu proje o adımı attı ve olumsuz sonucu
 raporluyor.
@@ -358,7 +446,7 @@ Proje kapsamında kurulan fiziksel AHP risk haritasının öngörü gücü, daha
 
 ### Modül 01: Pure Physical Baseline (Makine Öğrenmesi ile Fiziksel Model)
 Fiziksel değişkenlerin (yağış, LST, toprak, eğim vb.) gözlenen tarımsal stresi ne kadar açıklayabildiğini test etmek için, mekânsal sızıntıyı (spatial leakage) engelleyen katı bir 100x100 Spatial Block Cross-Validation (GroupKFold) kurgusu ile bir Random Forest modeli eğitildi.
-- **Sonuç:** Modelin öngörü gücü R² ≈ 0.13 ve RMSE = 0.0905 olarak ölçüldü.
+- **Sonuç:** Modelin öngörü gücü **R² = 0,133** (beş kat: 0,102–0,151, std 0,020) ve **RMSE = 0,091** olarak ölçüldü. Kat bazında dağılım ve özellik önemleri: [`outputs/reports/ml_baseline_physical.md`](outputs/reports/ml_baseline_physical.md).
 - **Anlamı:** Yüksek düzeyde insan müdahalesine (sulama altyapısı vb.) sahip bu tarım havzasında, yalnızca fiziksel ve meteorolojik değişkenler kuraklık stresini açıklamakta oldukça sınırlı kalmaktadır. 
 
 ### Modül 02: Fiziksel-Gözlemsel Uyumsuzluk (Resilience Gap)
@@ -368,10 +456,34 @@ Makine öğrenmesi tabanlı Pure Physical Baseline modelinin beklediği fiziksel
 
 ### Modül 03: Tarihsel Ayrışma (Historical Decoupling, 1985-2011)
 AHP tabanlı fiziksel risk haritasının, geçmişteki büyük kuraklık yıllarında bitki örtüsü stresiyle ne kadar ilişkili olduğu Landsat 5 kullanılarak test edildi. Geçmiş kurak yıllara ait Spearman r korelasyonları şöyledir:
-- **Erken Dönem:** 1989 (r = -0.21), 1990 (r = -0.06), 1992 (r = -0.44), 1994 (r = -0.26). Bu yıllarda fiziksel risk ile gözlenen stres arasında beklenen yönde negatif ilişkiler mevcuttur.
-- **Geç Dönem:** 2001 (r = +0.35), 2007 (r = -0.07), 2008 (r = +0.01). 2000'li yıllardaki kuraklıklarda ise bu ilişkinin zayıfladığı veya yön değiştirdiği gözlenmiştir.
+| Kurak yıl | SPI-12 | Risk–stres korelasyonu |
+|---|---:|---:|
+| 1989 | −2,45 | **+0,087** |
+| 1990 | −1,37 | −0,138 |
+| 1992 | −1,90 | **+0,079** |
+| 1994 | −1,08 | −0,000 |
+| 2001 | −2,30 | −0,242 |
+| 2007 | −2,35 | −0,080 |
+| 2008 | −1,21 | −0,146 |
 
-**Bilimsel Çıkarım:** Fiziksel su stresi riski ile tarımsal sistemin kırılganlığı arasındaki mekânsal ilişki durağan değildir (temporally non-stationary). Fiziksel riskin gözlenen tarımsal etkiyi açıklama gücündeki bu azalma; havzadaki insan yönetimi, sulama uygulamaları veya mahsul deseni değişiklikleriyle uyumludur.
+**Bulgu:** işaret tutarlı değil — havzanın en ağır iki kuraklığından biri olan
+1989'da ilişki beklenenin **tersi** yönde, 2001'de ise en güçlü beklenen yönde.
+Kurak yıllara uydurulan doğrunun eğimi **−0,0088/yıl** (R² = 0,325,
+**p = 0,181**): işaret ilişkinin zamanla hafifçe güçlendiğini gösteriyor ama
+**istatistiksel olarak anlamlı değil**. Yedi gözlemle eğilim testinin gücü zaten
+düşüktür.
+
+**Çıkarım:** bu veriyle zamana bağlı bir ayrışma eğilimi **iddia edilemez**.
+Yıl bazında korelasyonlar sıfır çevresinde saçılıyor — bu, projenin ana
+bulgusunu (harita gözlenen etkiyi öngörmüyor) destekler, ayrı bir zaman
+eğilimi göstermez. Kaynak:
+[`outputs/reports/historical_decoupling.md`](outputs/reports/historical_decoupling.md).
+
+> **Not:** bu bölümün daha önceki sürümü "erken dönemde beklenen yönde negatif,
+> geç dönemde zayıflayan" bir örüntü bildiriyordu. O sayılar, Adım 4'ün geçici
+> olarak Random Forest haritası ürettiği dönemde hesaplanmıştı; AHP haritası
+> geri getirilip bütün sınamalar yeniden çalıştırıldığında örüntü ortadan
+> kalktı. Eski yorum bu yüzden geri çekildi.
 
 *(Sınırlılık Notu: 1985-2011 dönemine ait bu analizde, veri eksikliğinden dolayı güncel tarım maskesi kullanılmıştır. Zaman içinde değişen tarım sınırları, tarihsel sonuçlar üzerinde bir belirsizlik barındırmaktadır.)*
 
@@ -384,6 +496,14 @@ daha başarılı olduğunu buluyor. Bu havza için sınandı:
 |---|---:|---:|
 | Bağımsız ET/PET ile ρ (ham katman) | **+0,647** | +0,618 |
 | Bağımsız ET/PET ile ρ (risk haritası) | **−0,331** | −0,283 |
+
+> Bu tablonun iki sütunu da **aynı, daha eski çalıştırmadan** gelir
+> ([`vegetation_index_comparison.md`](outputs/reports/vegetation_index_comparison.md)).
+> Karşılaştırmayı güncel risk indeksiyle tekrarlamak `evi_dry.tif` kompozitinin
+> üretilmesini, o da Sentinel-2'nin mavi bandıyla yeniden indirilmesini
+> gerektiriyor (`step02_fetch_data`, ~1,5 sa) — bu yüzden tazelenmedi. İki
+> sütun kendi içinde tutarlı olduğu için **karşılaştırmanın sonucu geçerli**;
+> mutlak değerler bugünkü haritanınkiyle birebir aynı değil.
 
 İki indeks ρ = 0,956 korelasyonlu; risk haritaları %87,2 aynı sınıfta, %100'ü
 en fazla 1 sınıf kayıyor. **Bu havzada indeks seçimi belirleyici değil ve
@@ -483,6 +603,173 @@ kopyasına yönlendiriyor.
 
 ---
 
+## Mühendislik kararları
+
+Bu projede sonucu belirleyen şey kullanılan kütüphaneler değil, aşağıdaki yedi
+karardı. Hepsi geri alınabilir; hepsinin gerekçesi kayıtlı.
+
+**1. Olumsuz sonucu raporlamak — sınamayı yumuşatmak yerine sertleştirmek.**
+İlk sınama Sentinel-2 döneminde yapıldı ve "karar verilemez" ile bitti: 2017–2025
+arasında yalnızca 1 kurak yıl vardı. Bu mazereti *kaldırmak* için Landsat 5
+arşivi eklendi — 27 yıl, 7 gerçek kurak yıl. Sınama adilleştikçe sonuç
+değişmedi. Eşiği kaydırmak yerine sonucu yayımlamak seçildi.
+
+**2. Sulama kriterini eklemek — fiziksel gerekçeyle, sonucu güzelleştirmek
+için değil.** Yedi kriterli sürümde tarım ve mera *aynı* riskte çıkıyor, en
+riskli yer ova tabanı oluyordu. Gediz ovası gerçekten sıcak ve kurak, ama
+sulanıyor. Kriter eklendiğinde tarımın ortalama riski meranın altına indi
+(güncel ölçüm 0,395 / 0,439) ve risk zirvesi ova tabanından yamaç eteğine kaydı
+— beklenen fiziksel yön.
+
+**3. Vekil değişkeni vekil olarak adlandırmak.** Sulama katmanı OSM kanal
+ağından türetiliyor; DSİ'nin resmî komuta alanı değil ve tersiyer şebeke eksik.
+Bu, hem README'de hem arayüzde hem de sınırlılıklar listesinde açıkça "vekil"
+diye geçiyor. Bir vekili gerçek veriymiş gibi sunmak, sonucun tamamını
+tartışmalı hale getirirdi.
+
+**4. Sayıları rapordan değil raster'dan saymak.** Risk sınıfı payları doğrudan
+sınıf raster'ından sayılıyor. Sebep: rapor ve raster ayrı zamanlarda tazeleniyor;
+ikisinden okumak aynı sayfada aynı büyüklüğün iki farklı değerini gösterirdi.
+Rapor raster'dan eskiyse arayüz bunu söyleyip sınıf sınırlarını gizliyor.
+
+**5. Tek veri dosyası sözleşmesi.** İki arayüz de yalnızca
+`web-app/public/data/summary.json` okuyor, üreteni
+[`scripts/export_web_data.py`](scripts/export_web_data.py). Analiz yeniden
+çalıştığında ikisi de güncelleniyor ve birbirinden sapamıyor.
+[`scripts/check_web_content.py`](scripts/check_web_content.py) her derlemede
+hiçbir bulgunun düşmediğini sınıyor; düşerse yayın duruyor.
+
+**6. Ağ testlerini ayrı ve affedici bir işe almak.** Birim testleri hiçbir dış
+servise bağlanmaz — kırmızıya dönmesi her zaman gerçek bir kod hatası demektir.
+Veri sağlayıcılarının sözleşmesini (STAC asset adları, WorldCover'ın boş
+`datetime` alanı, MODIS'in karışık platformu) denetleyen ağ testleri ayrı işte
+ve `continue-on-error`; sağlayıcı bozulduğunda asıl kapıyı kilitlemesin diye.
+
+**7. Ortam hatasını sistemi değiştirerek değil kod içinde çözmek.** Makinede
+PostGIS, QGIS ya da OSGeo4W kuruluysa `PROJ_LIB` sistem genelinde ele geçiyor ve
+rasterio hiçbir EPSG kodunu çözemiyor. [`src/_geoenv.py`](src/_geoenv.py) bunu
+içe aktarma anında, kullanıcının sistem değişkenlerine dokunmadan düzeltiyor —
+`AHP_KEEP_SYSTEM_PROJ=1` ile kapatılabiliyor.
+
+## Arayüzler
+
+İki arayüz var ve **ikisi de aynı veri dosyasını okur** —
+`web-app/public/data/summary.json`, üreteni
+[`scripts/export_web_data.py`](scripts/export_web_data.py). Her sayısal
+gösterim — başlık rakamları, tablolar, grafikler, harita sınıfları — bu dosyadan
+okunur; analiz yeniden çalıştığında ikisi de güncellenir ve birbirinden sapamaz.
+Bölüm metinlerindeki yorum cümleleri ise `outputs/reports/` altındaki raporlardan
+alıntıdır ve elle yazılmıştır; analiz değişirse bu cümleler de gözden geçirilmeli.
+
+| | [`web-app/`](web-app/) | [`dashboard/app.py`](dashboard/app.py) |
+|---|---|---|
+| Kim için | genel okur, işe alım, sunum | analist, kendi verisiyle oynayan |
+| Yığın | React + Vite + Leaflet | Streamlit + folium |
+| Dağıtım | GitHub Pages (otomatik) | yerel / Streamlit Cloud |
+| Öne çıkan | etkileşimli harita, AHP grafikleri, olumsuz sonuç bölümü | tam raporlar, filtrelenebilir tablolar |
+
+```bash
+# Önce özet verisini üret (harita kaplamasını da o üretir)
+python -m scripts.export_web_data
+
+# React vitrini
+cd web-app && npm install && npm run dev
+
+# Streamlit paneli
+streamlit run dashboard/app.py
+```
+
+### Vitrin nasıl okunur
+
+Sayfa tek bir soruyu yukarıdan aşağıya takip eder: **risk nerede → nasıl
+hesaplandı → sulama sonucu nasıl değiştirdi → sonuç güvenilir mi → nerede
+başarısız oldu → sınırları ne?**
+
+Her bölüm üç seviyede okunur. Önce **bulgu** — bölümün cevabı, figürden önce
+tek cümle. Sonra **sayılar** — grafik, tablo, metrik kartları. En sonda
+**gerekçe** — katlanır panellerde. Katlanan hiçbir şey silinmiş değildir:
+panelin başlığı kapalıyken de sayıyı taşır, içerik DOM'da durur, Ctrl+F bulup
+paneli açar, yazdırmada hepsi açık basılır ve bir çapayla gelen okurda ilgili
+panel açık gelir. `python -m scripts.check_web_content` bunu her derlemede
+sınar; bir bulgu düşerse yayın durur.
+
+Aşağıdaki görseller sayfanın gösterdiği analizlerin **durağan sürümleridir** —
+vitrin bunların etkileşimli karşılıklarını `summary.json`'dan üretir, ekran
+görüntüsü değildir.
+
+**1. Giriş — dört sayı.** Okur daha kaydırmadan projenin ölçeğini görür:
+sınıflandırılan alan (4.634,9 km², 30 m grid), AHP kriteri sayısı (9, CR = 0,0093),
+çok yüksek risk payı (%4,3) ve iklim serisinin uzunluğu (68 yıl, TerraClimate
+1958–2025). Giriş metni sonucun olumsuz olduğunu daha ilk paragrafta söyler —
+sayfa bunu sona saklamaz.
+
+**2. Risk haritası.** Sayfanın en büyük görseli. Leaflet katmanı, sınıf
+raster'ının EPSG:4326'ya projekte edilmiş halidir; lejant, opaklık denetimi ve
+altlık aynı paleti kullanır. Bulgu haritanın hemen altındadır: *sulama erişimi
+kritere eklenince risk zirvesi ova tabanından yamaç eteğine (güncel ölçümde
+563–860 m) kaydı.*
+
+![Risk haritası](outputs/figures/risk_map_steep_riskier.png)
+
+**3. Risk sınıfı dağılımı.** Jenks doğal kırılımlarıyla beş sınıf; paylar
+figürden ya da rapordan değil, doğrudan risk raster'ından sayılır. Grafiğin
+tablo görünümü aynı anahtarla açılır — renk körlüğü, ekran okuyucu ve yazdırma
+için sayılara ulaşmanın yolu odur.
+
+![Risk indeksi dağılımı](outputs/figures/risk_histogram_steep_riskier.png)
+
+Bu bölümde iki katlanır panel var: sulamanın haritayı fiziksel olarak nasıl
+değiştirdiği (yedi kriterli sürümle karşılaştırma) ve duyarlılık analizi
+(±%10 ağırlık oynatmasında piksellerin en kötü %93,1'i aynı sınıfta, en iyi
+%99,3; Spearman hiçbir senaryoda 0,997'nin altına inmiyor).
+
+**4. AHP ağırlıkları ve efektif katkı.** Dokuz kriterin tamamı görünür kalır.
+Grafik iki seriyi yan yana koyar: nominal AHP ağırlığı ve haritada gerçekten
+ürettiği ayrım. Bulgu şudur: *suya uzaklık %5,2 ağırlığa sahip ama efektif
+katkısı yalnızca %2,6* — havzadaki 728 km'lik akarsu ağı yüzünden alanın %90'ı
+suya yakın, skorlar 0–0,74 bandına sıkışıyor. Kriterin ölçeği var, değişkenliği
+yok.
+
+![Kriter paneli](outputs/figures/criteria_panel_steep_riskier.png)
+
+**5. Sulama ve NDVI.** Kurak yıllarda tarım alanı NDVI anomalisi, sulama
+şebekesine olan mesafeye göre ayrıştırılır. Bulgu: *yağmura bağlı tarım, kurak
+yıllarda sulanan tarımdan 2–10 kat fazla NDVI kaybediyor* — ama yağışlı 2023'te
+iki grup arasında fark yok, yani ölçülen şey arazi farkı değil sulamanın stres
+altındaki koruyucu etkisi. Metodolojik sonuç katlanır panelde durur: sulanan bir
+havzada NDVI, tarımsal kuraklık etkisini ölçemez.
+
+![Sulama etkisi](outputs/figures/summary_irrigation.png)
+
+**6. Doğrulama — negatif sonuç.** Bölüm ikiye ayrılır. Geçilen sınamalar beş
+metrik kartıdır: CR 0,0093 · k-means %99,7 uyum · ağırlık duyarlılığı %93,1 ·
+senaryo dayanıklılığı %79,4 · ET/PET ile monoton sıralama −0,283. Geçilemeyen
+sınama ise kırmızı üst çizgili ayrı bir blokta, dört maddesi tam görünür:
+Landsat 27 yıl ρ = −0,023, ET/PET ρ = +0,045, reddedilen hipotez (−0,021 →
++0,013), Random Forest R² = 0,133. Vurgu bilerek buradadır — sayfanın
+raporladığı asıl sonuç budur.
+
+![Doğrulama](outputs/figures/summary_validation.png)
+
+**7. Yöntem ve sınırlılıklar.** Beş sınırlılık **her zaman açıktır** ve
+katlanmaz: bir risk haritasının en kolay kötüye kullanılacak yeri, sınırları
+okunmadan haritaya bakılmasıdır. Kriter başına veri kaynağı tablosu ile yolda
+bulunup düzeltilen sekiz veri hatası katlanır panellerde durur.
+
+### Harita kaplaması neden ayrıca üretiliyor
+
+`outputs/figures/risk_map_*.png` bir **figürdür** — başlık, eksen, lejant ve
+ölçek çubuğu içerir; veri pikselleri görüntünün yalnızca bir bölümünü kaplar.
+Onu bir web haritasında coğrafi sınırlara germek raster'ı kaydırır ve ölçeğini
+bozar. `export_web_data.py` bunun yerine sınıf raster'ını EPSG:4326'ya yeniden
+projekte ediyor (en yakın komşu — sınıf değerleri kategorik), config paletiyle
+renklendiriyor, maskeli pikselleri şeffaf bırakıyor ve gerçek sınırlarını
+JSON'a yazıyor.
+
+Risk sınıfı payları da aynı raster'dan sayılıyor, rapordan değil: rapor ve
+raster ayrı zamanlarda tazelendiği için aynı sayfada aynı şeyin iki farklı
+değeri görünmesin diye.
+
 ## Kurulum
 
 ```bash
@@ -503,6 +790,24 @@ gerektirmez.**
 > değişkenlerine dokunmaz. Devre dışı bırakmak için `AHP_KEEP_SYSTEM_PROJ=1`.
 
 ## Çalıştırma
+
+Hattın tamamı tek komutla çalışır. Varsayılan olarak **ağa çıkmaz** — indirme
+adımları `--with-fetch` ile açılır, çünkü indirme bir kez yapılır ama analiz
+onlarca kez:
+
+```bash
+python -m scripts.run_all                 # analiz adımları (ağsız)
+python -m scripts.run_all --with-fetch    # indirme dahil, sıfırdan (~2,5 sa)
+python -m scripts.run_all --from step04   # risk haritasından itibaren
+python -m scripts.run_all --dry-run       # ne çalışacağını göster
+python -m scripts.run_all --scenario flat_riskier
+```
+
+Bir adım düşerse hat orada durur — sonraki adım zaten bozuk girdiyle
+çalışacaktı; `--keep-going` bunu gevşetir. Sonda hangi adımın ne kadar sürdüğü
+tablo hâlinde yazılır.
+
+Adımları tek tek çalıştırmak isterseniz:
 
 ```bash
 # Adım 1 — AOI, ortak grid, AHP tutarlılık kontrolü
@@ -547,9 +852,12 @@ python -m scripts.compare_vegetation_index
 python -m scripts.ahp_survey template --out surveys --experts 5
 python -m scripts.ahp_survey aggregate surveys/*.csv
 
+# Arayüzlerin okuduğu özet verisi + web haritası kaplaması
+python -m scripts.export_web_data
+
 # Testler
-pytest                    # hepsi
-pytest -m "not network"   # dış servise bağlanmadan
+pytest                    # hepsi (296)
+pytest -m "not network"   # dış servise bağlanmadan (292)
 ```
 
 Her katman `data/interim/` altına yazılır ve dosya varsa atlanır; uzun süren
@@ -573,9 +881,20 @@ src/
   animate.py                 Adım 6 — GIF ve parsel eğrileri
   validate.py                Adım 7 — üç seviyeli doğrulama
 scripts/                     Adım adım çalıştırılabilir betikler
-tests/                       153 pytest testi
+  run_all.py                 Bütün hattı sırayla çalıştırır (ağsız varsayılan)
+  step04_risk_map.py         AHP çakıştırma + duyarlılık + k-means raporu
+  step14_...test.py          Fiziksel taban çizgisi (RF, mekânsal blok CV)
+  step16_rf_risk_map.py      RF risk haritası — AHP'nin YERİNE değil, yanında
+  step17_..._hypothesis.py   Düşük değişkenlik hipotezini kurar ve sınar
+  export_web_data.py         Arayüzlerin okuduğu tek veri dosyasını üretir
+  check_web_content.py       Vitrinde hiçbir bulgunun düşmediğini sınar
+  check_reports_consistency.py  Belgelerdeki sayılar raporlarla tutuyor mu
+tests/                       296 pytest testi (292'si ağsız)
 outputs/{figures,reports}    Harita, animasyon, raporlar
+web-app/                     React vitrini (GitHub Pages'e dağıtılır)
+dashboard/app.py             Streamlit analist paneli
 docs/references.md           Literatür künyeleri
+docs/proje_brief.md          Projenin başlangıç şartnamesi
 ```
 
 **Hiçbir ağırlık, eşik, sınıf skoru veya renk kod içine gömülü değildir** —
