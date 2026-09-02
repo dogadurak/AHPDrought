@@ -56,15 +56,23 @@ MIN_BASELINE_YEARS = 10
 #
 # Harita ET/PET anomalisini öngörüp NDVI anomalisini öngörmüyorsa, sorun
 # haritada değil ölçüdedir.
+# (klasör, dosya öneki, etiket, işaret)
+#
+# İŞARET, sessiz hata üretmeye en açık yer. Bütün sınamalar "düşük değer =
+# çok hasar" varsayımıyla yazıldı (NDVI böyledir). Yüzey sıcaklığı tersidir:
+# stresli yüzey ISINIR. Katmanı burada -1 ile çarpıp aynı yöne çeviriyoruz,
+# böylece eşikler (rho <= -0,10) ve bütün yorum mantığı değişmeden geçerli
+# kalıyor. Çevirmeyi unutmak, sonucun işaretini sessizce ters çevirirdi.
 IMPACT_SOURCES = {
-    "ndvi": ("landsat_ndvi", "ndvi", "Landsat 5 NDVI (yeşillik)"),
-    "et": ("et_yearly", "et_pet", "MODIS ET/PET (su kısıtı)"),
+    "ndvi": ("landsat_ndvi", "ndvi", "Landsat 5 NDVI (yeşillik)", +1),
+    "et": ("et_yearly", "et_pet", "MODIS ET/PET (su kısıtı)", +1),
+    "lst": ("landsat_lst", "lst", "Landsat 5 yüzey sıcaklığı (enerji dengesi)", -1),
 }
 
 
 def available_years(config: Config, source: str = "ndvi") -> list[int]:
     """Üretilmiş yıllık etki katmanlarının yılları."""
-    folder, prefix, _ = IMPACT_SOURCES[source]
+    folder, prefix, _, _sign = IMPACT_SOURCES[source]
     directory = interim_path(config, folder, "x").parent
     years = []
     for path in sorted(directory.glob(f"{prefix}_*.tif")):
@@ -76,10 +84,12 @@ def available_years(config: Config, source: str = "ndvi") -> list[int]:
 
 
 def _layer(config: Config, grid: TargetGrid, year: int, source: str = "ndvi") -> np.ndarray:
-    folder, prefix, _ = IMPACT_SOURCES[source]
+    folder, prefix, _, sign = IMPACT_SOURCES[source]
     path = interim_path(config, folder, f"{prefix}_{year}.tif")
     array = read_grid_aligned(path, grid).astype("float32")
-    return np.where(array == np.float32(config.nodata), np.nan, array)
+    layer = np.where(array == np.float32(config.nodata), np.nan, array)
+    # Bütün etki katmanları "düşük değer = çok hasar" yönüne çevrilir.
+    return layer if sign > 0 else -layer
 
 
 def landsat_anomaly(

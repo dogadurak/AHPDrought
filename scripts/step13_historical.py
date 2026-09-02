@@ -36,8 +36,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fetch", action="store_true", help="Landsat serisini indir")
     parser.add_argument("--dry-threshold", type=float, default=-1.0,
                         help="Kurak dönem SPI-12 bu değerin altındaki yıllar 'kurak'")
-    parser.add_argument("--impact", default="ndvi", choices=("ndvi", "et"),
-                        help="Etki ölçüsü: ndvi (Landsat yeşillik) | et (MODIS su kısıtı)")
+    parser.add_argument("--impact", default="ndvi", choices=("ndvi", "et", "lst"),
+                        help="Etki ölçüsü: ndvi (Landsat yeşillik) | "
+                             "et (MODIS su kısıtı) | lst (Landsat yüzey sıcaklığı)")
     parser.add_argument("--landcover-code", type=int, default=40,
                         help="Adil karşılaştırma için sınıf (40 = Cropland, 0 = hepsi)")
     args = parser.parse_args(argv)
@@ -52,7 +53,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.fetch:
         from src.fetch.landsat import fetch_landsat_series
 
-        fetch_landsat_series(config, grid)
+        # Hangi etki ölçüsü sınanacaksa onun katmanı indirilir.
+        variable = "lst" if args.impact == "lst" else "ndvi"
+        if args.impact == "et":
+            raise SystemExit(
+                "--impact et katmanı Adım 2'de üretilir (evapotranspiration); "
+                "burada --fetch gerekmez."
+            )
+        fetch_landsat_series(config, grid, variable=variable)
 
     years = available_years(config, args.impact)
     if len(years) < 11:
@@ -88,6 +96,30 @@ def main(argv: list[str] | None = None) -> int:
 
 def _indent(text: str, prefix: str = "    ") -> str:
     return "\n".join(prefix + line for line in text.splitlines())
+
+
+def _measure_caveat(source: str) -> str:
+    """Her etki ölçüsünün kendi sınırlılığı farklıdır; raporda doğrusu yazılmalı."""
+    return {
+        "ndvi": "**NDVI dolaylı bir etki ölçüsüdür.** Sulanan parselde yeşillik "
+                "korunurken maliyet artmış olabilir (bkz. Adım 11).",
+        "et": "**ET/PET tam bağımsız değildir.** MODIS MOD16 ürünü LAI/FPAR "
+              "kullandığı için bitki örtüsüyle akrabalığı sıfır değil.",
+        "lst": "**Yüzey sıcaklığı da sulamadan etkilenir.** Sulanan parsel "
+               "buharlaşmayla serinler; bu ölçü sulamanın maskeleme etkisinden "
+               "muaf değildir. Ama NDVI ve ET/PET'ten farklı bir fiziksel yoldan "
+               "(enerji dengesi) ölçtüğü için üçüncü bir bağımsız sınama sağlar. "
+               "Ayrıca çıplak toprak da sıcaktır: seyrek örtülü alanlarda yüksek "
+               "sıcaklık stresi değil, örtü azlığını gösterebilir.\n"
+               "4. **Yıl bazındaki anomali sütunu kuraklık göstergesi olarak "
+               "okunamaz.** Sıcaklık serisi 1985–2011 boyunca ısınma eğilimi "
+               "taşıyor: 1989 (SPI −2,45) taban çizgisinden soğuk, 2002 (normal) "
+               "sıcak çıkıyor. Sınamayı bu bozmaz — test yıl İÇİNDE piksel "
+               "sıralaması üzerinden hesaplanır ve yıla özgü sabit bir kayma "
+               "sıralamayı değiştirmez. Ancak ısınma mekânsal olarak düzgün "
+               "dağılmamışsa (kentleşme, sulama alanının genişlemesi) mekânsal "
+               "deseni de etkileyebilir; bu, ölçünün açık bir sınırıdır.",
+    }[source]
 
 
 def _write_report(config, result, years) -> None:
@@ -132,11 +164,10 @@ def _write_report(config, result, years) -> None:
         "   için güvenli; **sulama ağı ve arazi örtüsü için tartışmalı** — Gediz'de",
         "   sulu tarım o tarihten bu yana genişledi. Sonuç, haritanın *bugünkü*",
         "   hâlinin *geçmişteki* kuraklıkta ne kadar iyi çalışacağını ölçer.",
-        "2. **Sensör farkı.** Landsat 5 TM ile Sentinel-2 MSI aynı NDVI'ı vermez.",
+        "2. **Sensör farkı.** Landsat 5 TM ile Sentinel-2 MSI aynı değeri vermez.",
         "   Bu yüzden anomali Landsat döneminin kendi içinde hesaplanır; iki dönem",
         "   hiçbir yerde karıştırılmaz.",
-        "3. **NDVI hâlâ dolaylı bir etki ölçüsüdür.** Sulanan parselde yeşillik",
-        "   korunurken maliyet artmış olabilir (bkz. Adım 11).",
+        f"3. {_measure_caveat(result['source'])}",
     ]
     out.write_text("\n".join(parts), encoding="utf-8")
 

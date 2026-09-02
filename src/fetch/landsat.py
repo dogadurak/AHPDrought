@@ -55,6 +55,7 @@ from .common import (
 )
 
 LANDSAT_DIR = "landsat_ndvi"
+LST_DIR = "landsat_lst"
 
 # Collection-2 QA_PIXEL bit anlamları (USGS). Maskelenecekler:
 #   0 dolgu, 1 genişletilmiş bulut, 3 bulut, 4 bulut gölgesi, 5 kar/buz
@@ -175,21 +176,125 @@ def _qa_valid(qa):
     return valid
 
 
+def fetch_landsat_lst_year(
+    config: Config,
+    grid: TargetGrid,
+    year: int,
+    *,
+    overwrite: bool = False,
+) -> Path:
+    """Bir yılın kurak dönem medyan yüzey sıcaklığı kompozitini üretir (°C).
+
+    NEDEN ÜÇÜNCÜ BİR ETKİ ÖLÇÜSÜ: mevcut iki ölçü de bitki örtüsü tabanlı.
+    NDVI doğrudan yeşilliği ölçüyor; MODIS ET/PET ise LAI/FPAR kullandığı için
+    onunla akraba. Yüzey sıcaklığı bambaşka bir fiziksel yoldan ölçer: su
+    kısıtlanan bitki terlemeyi kısar, gizli ısı akısı düşer ve yaprak ısınır
+    (Idso/Jackson'ın bitki su stresi indeksinin dayandığı ilke). Yani bu ölçü,
+    haritanın stresi ENERJİ DENGESİ üzerinden öngörüp öngörmediğini sınar.
+
+    İŞARET DİKKAT: NDVI'da düşük değer hasar demektir, sıcaklıkta YÜKSEK değer
+    hasar demektir. Bu katman `src/historical.py` içinde -1 ile çarpılarak
+    diğerleriyle aynı yöne çevrilir; böylece bütün sınamalar ve eşikler
+    değişmeden geçerli kalır.
+    """
+    out = interim_path(config, LST_DIR, f"lst_{year}.tif")
+    label = f"Landsat LST {year}"
+    if skip_if_cached(out, overwrite, label):
+        return out
+
+    cfg = config["data_sources"]["landsat"]
+    dry = config["periods"]["dry_season"]
+    months = month_range(dry["start_month"], dry["end_month"])
+    window = f"{year}-{months[0]:02d}-01/{year}-{months[-1]:02d}-30"
+
+    def search() -> list:
+        found = search_items(
+            config, cfg["collection"], datetime=window,
+            query={"eo:cloud_cover": {"lt": cfg["max_scene_cloud_cover"]}},
+        )
+        return [i for i in found if i.properties.get("platform") == cfg["platform"]]
+
+    items = search()
+    if len(items) < cfg.get("min_scenes", 6):
+        raise RuntimeError(
+            f"{label}: yalnızca {len(items)} sahne bulundu "
+            f"(en az {cfg.get('min_scenes', 6)} gerekir)"
+        )
+
+    composite = retry_on_expired_signature(
+        lambda: _lst_composite(config, grid, search() or items, cfg), label=f"[{label}] "
+    )
+    array = composite.astype("float32")
+
+    valid = array[np.isfinite(array)]
+    gap = float(np.isnan(array).mean())
+    print(
+        f"  [{label}] {len(items)} sahne -> medyan {np.median(valid):.2f} °C "
+        f"(aralık {valid.min():.2f}..{valid.max():.2f}), boşluk %{100 * gap:.2f}"
+    )
+    if gap > cfg.get("max_gap_fraction", 0.15):
+        print(f"      UYARI: boşluk %{100 * gap:.1f} — bu yıl seyrek örneklenmiş olabilir")
+
+    filled = np.where(np.isnan(array), config.nodata, array)
+    return write_raster(
+        filled, grid, out, nodata=config.nodata,
+        description=f"Landsat 5 kurak dönem yüzey sıcaklığı medyanı {year} (°C)",
+    )
+
+
+def _lst_composite(config: Config, grid: TargetGrid, items: list, cfg: dict) -> np.ndarray:
+    """QA maskeli, ölçeklenmiş medyan yüzey sıcaklığı (°C)."""
+    bands = cfg["bands"]
+    band = bands["lst"]
+    chunk = int(cfg.get("chunk_size", 1024))
+
+    ds = load_to_grid(
+        items,
+        [band, bands["qa"]],
+        grid,
+        resampling=cfg["resampling"],
+        chunks={"x": chunk, "y": chunk},
+        groupby=cfg.get("groupby", "solar_day"),
+    )
+
+    raw = ds[band]
+    qa = ds[bands["qa"]]
+
+    # Ölçek/offset item metadatasından okunur (kelvin, 0.00341802 / 149.0).
+    scale, offset, nodata = _scaling(items[0], band)
+
+    # DOLGU MASKESİ ÖLÇEKLEMEDEN ÖNCE: 0 değeri ölçeklenirse 149 K'ye döner.
+    keep = _qa_valid(qa) & (raw != nodata)
+
+    kelvin = raw.where(keep).astype("float32") * scale + offset
+    celsius = kelvin - 273.15
+
+    # Fiziksel olarak imkânsız değerleri at (kalıntı bulut/gölge artefaktları).
+    celsius = celsius.where((celsius > -20) & (celsius < 75))
+
+    return celsius.median(dim="time").compute().values
+
+
 def fetch_landsat_series(
     config: Config,
     grid: TargetGrid,
     *,
+    variable: str = "ndvi",
     overwrite: bool = False,
 ) -> list[Path]:
-    """Landsat döneminin tüm yıllık kurak dönem kompozitlerini üretir."""
+    """Landsat döneminin tüm yıllık kurak dönem kompozitlerini üretir.
+
+    `variable`: "ndvi" (yeşillik) veya "lst" (yüzey sıcaklığı).
+    """
     cfg = config["data_sources"]["landsat"]
     years = list(range(cfg["start_year"], cfg["end_year"] + 1))
-    print(f"  [Landsat] {cfg['platform']}, {years[0]}-{years[-1]} ({len(years)} yıl)")
+    producer = {"ndvi": fetch_landsat_ndvi_year, "lst": fetch_landsat_lst_year}[variable]
+    print(f"  [Landsat/{variable}] {cfg['platform']}, {years[0]}-{years[-1]} ({len(years)} yıl)")
 
     produced, failed = [], []
     for year in years:
         try:
-            produced.append(fetch_landsat_ndvi_year(config, grid, year, overwrite=overwrite))
+            produced.append(producer(config, grid, year, overwrite=overwrite))
         except Exception as exc:
             failed.append((year, f"{type(exc).__name__}: {exc}"))
             print(f"  [Landsat {year}] atlandı — {type(exc).__name__}: {exc}")

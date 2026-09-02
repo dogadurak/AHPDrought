@@ -253,8 +253,10 @@ data_sources:
     max_scene_cloud_cover: 40
     min_scenes: 6
     max_gap_fraction: 0.15
-    bands: { red: "red", nir: "nir08", qa: "qa_pixel" }
-    resampling: { red: "average", nir08: "average", qa_pixel: "nearest" }
+    # `lst` -> Collection-2 Level-2 yüzey sıcaklığı (ST_B6). Katalogdan
+    # doğrulandı: birim kelvin, scale 0.00341802, offset 149.0, nodata 0, 30 m.
+    bands: { red: "red", nir: "nir08", qa: "qa_pixel", lst: "lwir" }
+    resampling: { red: "average", nir08: "average", qa_pixel: "nearest", lwir: "average" }
     groupby: "solar_day"
     chunk_size: 1024
     # ÖLÇEKLEME: yüzey yansıması = DN * 2.75e-05 - 0.2, dolgu değeri 0.
