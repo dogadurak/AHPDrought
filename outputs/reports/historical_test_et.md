@@ -26,50 +26,50 @@ birebir aynı çözünürlük.
 ```
 Etki ölçüsü: MODIS ET/PET (su kısıtı)
 
-Yıl       SPI-12    durum   ort. anomali   risk-anomali ρ   monoton
+Yıl       SPI-12    durum   ort. anomali   risk-anomali r   monoton
 -------------------------------------------------------------------
-2000       -0.99   normal        -0.0352           0.1022     hayır
-2001       -2.30    KURAK        -0.0328          -0.2058     hayır
-2002        0.98   normal         0.0264          -0.2200      evet
-2003        0.23   normal        -0.0042          -0.0233     hayır
-2004       -0.24   normal        -0.0060          -0.2019     hayır
-2005       -0.43   normal         0.0077          -0.3091     hayır
-2006       -0.27   normal         0.0142          -0.2446     hayır
-2007       -2.35    KURAK        -0.0580           0.1968     hayır
-2008       -1.21    KURAK        -0.0285           0.1576     hayır
-2009        0.90   normal         0.0133           0.0888     hayır
-2010        1.51   normal        -0.0005           0.2764     hayır
-2011        0.38   normal         0.0083           0.1687     hayır
-2012        0.91   normal         0.0004          -0.2238     hayır
-2013        0.58   normal         0.0001           0.0054     hayır
-2014       -0.80   normal         0.0311          -0.3475     hayır
-2015        1.33   normal         0.0371          -0.2130     hayır
-2016       -0.16   normal        -0.0212           0.1203     hayır
-2017       -0.29   normal         0.0044          -0.0124     hayır
-2018       -0.03   normal         0.0042           0.3009     hayır
-2019        0.56   normal         0.0108           0.0818     hayır
-2020       -0.35   normal        -0.0063           0.1390     hayır
-2021       -0.48   normal        -0.0133           0.3529     hayır
-2022       -0.04   normal        -0.0049           0.0777     hayır
-2023        0.26   normal         0.0654           0.3223     hayır
-2024       -0.09   normal        -0.0128           0.0849     hayır
+2000       -0.99   normal        -0.0352           0.0992     hayır
+2001       -2.30    KURAK        -0.0328          -0.2096     hayır
+2002        0.98   normal         0.0264          -0.2366     hayır
+2003        0.23   normal        -0.0042          -0.0153     hayır
+2004       -0.24   normal        -0.0060          -0.2160     hayır
+2005       -0.43   normal         0.0077          -0.3062     hayır
+2006       -0.27   normal         0.0142          -0.2523     hayır
+2007       -2.35    KURAK        -0.0580           0.1996     hayır
+2008       -1.21    KURAK        -0.0285           0.1458     hayır
+2009        0.90   normal         0.0133           0.0748     hayır
+2010        1.51   normal        -0.0005           0.2655     hayır
+2011        0.38   normal         0.0083           0.1770     hayır
+2012        0.91   normal         0.0004          -0.2266     hayır
+2013        0.58   normal         0.0001          -0.0110     hayır
+2014       -0.80   normal         0.0311          -0.3527     hayır
+2015        1.33   normal         0.0371          -0.1948     hayır
+2016       -0.16   normal        -0.0212           0.1270     hayır
+2017       -0.29   normal         0.0044          -0.0119     hayır
+2018       -0.03   normal         0.0042           0.2967     hayır
+2019        0.56   normal         0.0108           0.0910     hayır
+2020       -0.35   normal        -0.0063           0.1426     hayır
+2021       -0.48   normal        -0.0133           0.3663     hayır
+2022       -0.04   normal        -0.0049           0.0949     hayır
+2023        0.26   normal         0.0654           0.3426     hayır
+2024       -0.09   normal        -0.0128           0.1011     hayır
 -------------------------------------------------------------------
-Kurak yıllar  (n=3): ortalama ρ = +0.0495   [2001, 2007, 2008]
-Normal yıllar (n=22): ortalama ρ = +0.0148
-Fark: -0.0347  (pozitif = kurak yıllarda ilişki daha güçlü)
+Kurak yıllar  (n=3): ortalama r = +0.0453   [2001, 2007, 2008]
+Normal yıllar (n=22): ortalama r = +0.0162
+Fark: -0.0291  (pozitif = kurak yıllarda ilişki daha güçlü)
 
 Sınıf              kurak yıllar    tüm yıllar
 ---------------------------------------------
-1 — Çok düşük          -0.0390        0.0000
-2 — Düşük              -0.0396       -0.0000
-3 — Orta               -0.0423       -0.0000
-4 — Yüksek             -0.0389        0.0000
-5 — Çok yüksek         -0.0378        0.0000
+1 — Çok düşük          -0.0388       -0.0000
+2 — Düşük              -0.0406       -0.0000
+3 — Orta               -0.0417        0.0000
+4 — Yüksek             -0.0379        0.0000
+5 — Çok yüksek         -0.0383        0.0000
 ---------------------------------------------
-Sınıf 5 eksi Sınıf 1 (beklenti NEGATİF): +0.0011  -> TERS YÖNDE
+Sınıf 5 eksi Sınıf 1 (beklenti NEGATİF): +0.0005  -> TERS YÖNDE
 
 HİPOTEZ: yapısal risk, ağır stres altında daha güçlü ayrım üretmeli.
-SONUÇ  : DESTEKLENMEDİ — kurak yıllarda ilişki fiilen sıfır (ρ = +0.050, eşik ≤ -0.10). Harita ağır stres altında da etkilenen alanları göstermiyor.
+SONUÇ  : DESTEKLENMEDİ — kurak yıllarda ilişki fiilen sıfır (r = +0.045, eşik <= -0.10). Harita ağır stres altında da etkilenen alanları göstermiyor.
 ```
 
 ## Bu sınamanın kendi sınırlılıkları

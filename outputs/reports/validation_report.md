@@ -21,9 +21,9 @@ Sonuç bu tek karara aşırı duyarlıysa harita savunulamaz.
 
 | Karşılaştırma | `steep_riskier` vs `flat_riskier` |
 |---|---|
-| Risk indeksi ortalama farkı | 0.0238 |
-| Risk indeksi maksimum farkı | 0.0425 |
-| Aynı sınıfta kalan piksel | %78.0 |
+| Risk indeksi ortalama farkı | 0.0178 |
+| Risk indeksi maksimum farkı | 0.0383 |
+| Aynı sınıfta kalan piksel | %79.4 |
 | En fazla 1 sınıf kayan piksel | %100.0 |
 
 ## 2. Buharlaşma oranı ET/PET (BAĞIMSIZ)
@@ -39,13 +39,13 @@ kullanmasıdır, yani bitki örtüsüyle akrabalığı sıfır değildir.
 
 | Risk sınıfı | Ortalama ET/PET | Piksel |
 |---|---|---|
-| 1 — Çok düşük | 0.2846 | 643,947 |
-| 2 — Düşük | 0.2747 | 1,216,967 |
-| 3 — Orta | 0.2595 | 1,488,104 |
-| 4 — Yüksek | 0.2366 | 1,146,883 |
-| 5 — Çok yüksek | 0.2358 | 546,684 |
+| 1 — Çok düşük | 0.2770 | 737,698 |
+| 2 — Düşük | 0.2682 | 1,296,831 |
+| 3 — Orta | 0.2558 | 1,455,183 |
+| 4 — Yüksek | 0.2374 | 1,088,243 |
+| 5 — Çok yüksek | 0.2347 | 464,630 |
 
-Risk indeksi ile ET/PET arasında Spearman ρ = **-0.3309**.
+Risk indeksi ile ET/PET arasında Spearman ρ = **-0.2833**.
 **Sonuç:** beklenen yönde, monoton azalıyor.
 
 ## 3. Mevsimsel NDVI genliği (yarı bağımsız)
@@ -58,11 +58,11 @@ sensörden türediği için kısmi döngüsellik taşır.
 
 | Risk sınıfı | Ortalama mevsimsel NDVI düşüşü | Piksel |
 |---|---|---|
-| 1 — Çok düşük | 0.0426 | 662,398 |
-| 2 — Düşük | 0.1118 | 1,249,683 |
-| 3 — Orta | 0.1742 | 1,512,299 |
-| 4 — Yüksek | 0.2505 | 1,160,508 |
-| 5 — Çok yüksek | 0.3504 | 564,624 |
+| 1 — Çok düşük | 0.0532 | 763,944 |
+| 2 — Düşük | 0.1299 | 1,331,994 |
+| 3 — Orta | 0.1826 | 1,474,633 |
+| 4 — Yüksek | 0.2552 | 1,102,609 |
+| 5 — Çok yüksek | 0.3265 | 476,332 |
 
 **Sonuç:** beklenen yönde, monoton artıyor.
 
@@ -72,21 +72,21 @@ sensörden türediği için kısmi döngüsellik taşır.
 
 | Arazi örtüsü | Ortalama risk | Alan payı |
 |---|---|---|
-| Bare / sparse vegetation | 0.6185 | %0.6 |
-| Grassland | 0.5762 | %24.8 |
-| Shrubland | 0.5635 | %1.3 |
-| Cropland | 0.5314 | %24.3 |
-| Tree cover | 0.5005 | %42.2 |
+| Bare / sparse vegetation | 0.4582 | %0.6 |
+| Grassland | 0.4386 | %24.8 |
+| Shrubland | 0.4299 | %1.3 |
+| Cropland | 0.3951 | %24.3 |
+| Tree cover | 0.3829 | %42.2 |
 
 ### Yükseklik kuşağına göre ortalama risk
 
 | Yükseklik | Ortalama risk | Piksel |
 |---|---|---|
-| 33–132 m | 0.5212 | 1,029,991 |
-| 132–302 m | 0.5445 | 1,029,995 |
-| 302–563 m | 0.5561 | 1,029,992 |
-| 563–860 m | 0.5523 | 1,029,993 |
-| 860–2,149 m | 0.4773 | 1,029,993 |
+| 33–132 m | 0.3853 | 1,029,991 |
+| 132–302 m | 0.4092 | 1,029,995 |
+| 302–563 m | 0.4193 | 1,029,992 |
+| 563–860 m | 0.4216 | 1,029,993 |
+| 860–2,149 m | 0.3747 | 1,029,993 |
 
 ## Gerçek doğrulama için gereken
 
