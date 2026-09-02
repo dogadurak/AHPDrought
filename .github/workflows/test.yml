@@ -28,6 +28,13 @@ jobs:
       - name: Testler
         run: pytest -ra -m "not network"
 
+      - name: Belgelerdeki sayılar raporlarla tutuyor mu
+        # Bu proje tam da burada yara aldı: hattın bir adımı değişti, raporlar
+        # yenilendi, README eski sayılarda kaldı ve aynı büyüklüğün üç değeri
+        # aynı belgede yan yana durdu. Metni okuyan yakalayamaz, bu yakalar.
+        # Bağımlılığı yok; raporlar depoda izlendiği için CI'da çalışabiliyor.
+        run: python -m scripts.check_reports_consistency
+
       - name: Adım 1 uçtan uca çalışıyor mu
         run: python -m scripts.step01_define_grid
 

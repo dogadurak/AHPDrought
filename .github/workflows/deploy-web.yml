@@ -1,0 +1,86 @@
+name: web vitrini
+
+# React vitrinini (`web-app/`) GitHub Pages'e dağıtır.
+#
+# NOT: `web-app/public/data/` içeriği (summary.json ve harita kaplaması)
+# BİLEREK repoda tutuluyor. Üreteni `scripts/export_web_data.py`, girdisi ise
+# `data/processed/` altındaki risk raster'ı — o dosya repoya girmiyor (yüzlerce
+# MB). Dolayısıyla CI bu veriyi yeniden üretemez; analiz değiştiğinde geliştirici
+# yerelde `python -m scripts.export_web_data` çalıştırıp çıktıyı commit'ler.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-app/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Aynı anda tek dağıtım; sıradaki push öncekini iptal etmez, kuyruğa girer.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web-app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web-app/package-lock.json
+
+      - run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Özet verisi yerinde mi
+        # Vitrin bütün sayıları bu dosyadan okur; yoksa sayfa hata ekranı
+        # gösterir. Sessizce boş bir site yayınlamak yerine burada duralım.
+        run: test -s public/data/summary.json
+
+      - name: Derle
+        env:
+          # Proje sitesi https://<kullanıcı>.github.io/<repo>/ altında sunulur.
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Hiçbir bulgu düşmemiş mi
+        # Vitrin sık sık yeniden düzenleniyor; bir sayıyı ya da sınırlılığı
+        # sessizce düşürmek en kolay hata. Bileşen saymak bunu yakalamaz,
+        # metni aramak yakalar. Derlenmiş pakete bakar, o yüzden derlemeden
+        # SONRA çalışır. Bağımlılığı yok, standart kütüphane yeter.
+        working-directory: ${{ github.workspace }}
+        run: python -m scripts.check_web_content
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: web-app/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
