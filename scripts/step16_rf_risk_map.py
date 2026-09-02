@@ -115,14 +115,27 @@ def main(argv: list[str] | None = None) -> int:
         print(f"\n  Bağımsız k-means çapraz kontrolü: %{100 * agreement:.1f} sınıf uyumu")
 
     print("\n[4] Görseller")
+    # AD ÇAKIŞMASI TUZAĞI: plot_* varsayılan olarak senaryo adıyla yazar ve bu,
+    # AHP figürlerinin (risk_map_<senaryo>.png) üstüne biner. Bu betik bir kez
+    # tam da bunu yaptı ve README'nin gösterdiği harita RF çıktısıyla değişti.
+    # Çıktı adları bu yüzden açıkça veriliyor.
     from src.visualize import plot_risk_histogram, plot_risk_map
+
+    fig_dir = resolve(config["paths"]["outputs"]) / "figures"
+    fig_dir.mkdir(parents=True, exist_ok=True)
     for path in (
-        plot_risk_map(config, grid, classes, breaks),
-        plot_risk_histogram(config, risk_map, breaks),
+        plot_risk_map(
+            config, grid, classes, breaks,
+            out_path=fig_dir / f"risk_map_rf_{config.scenario}.png",
+        ),
+        plot_risk_histogram(
+            config, risk_map, breaks,
+            out_path=fig_dir / f"risk_histogram_rf_{config.scenario}.png",
+        ),
     ):
         print(f"  {path.relative_to(path.parents[2])}")
 
-    print(f"\nAdım 4-5 tamamlandı.")
+    print("\nAdım 16 tamamlandı.")
     return 0
 
 def _indent(text: str, prefix: str = "  ") -> str:
