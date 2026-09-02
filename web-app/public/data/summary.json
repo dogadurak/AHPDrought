@@ -1,5 +1,5 @@
 {
-  "generated": "2026-09-02",
+  "generated": "2026-09-03",
   "scenario": "steep_riskier",
   "project": {
     "name": "AHP Tabanlı Tarımsal Kuraklık Risk Haritalama — Gediz Havzası",
@@ -364,5 +364,21 @@
     "width": 3142,
     "height": 1606,
     "source_raster": "data/processed/risk_class_steep_riskier.tif"
+  },
+  "map_overlay_rf": {
+    "url": "data/risk_overlay_rf_steep_riskier.png",
+    "bounds": [
+      [
+        38.19042530972217,
+        27.595600024686135
+      ],
+      [
+        38.70958110222286,
+        28.61128339955361
+      ]
+    ],
+    "width": 3142,
+    "height": 1606,
+    "source_raster": "data/processed/risk_class_rf_steep_riskier.tif"
   }
 }

@@ -14,8 +14,12 @@ import { pct } from "../lib/format";
  * `outputs/figures/risk_map_*.png` BURAYA KONULAMAZ: o bir figürdür (başlık,
  * eksen, lejant, ölçek çubuğu içerir) ve coğrafi sınırlara gerildiğinde
  * raster kayar.
+ *
+ * İkinci katman (`overlayRf`) Adım 16'nın Random Forest tahminidir. AHP'nin
+ * yerine geçmez; katman denetiminden açılıp aynı lejantla karşılaştırılır.
+ * İkisinin birbirini tutmaması projenin bulgusudur, kusuru değil.
  */
-export function RiskMap({ overlay, classes, dark, fallbackImage }) {
+export function RiskMap({ overlay, overlayRf, classes, dark, fallbackImage }) {
   const [opacity, setOpacity] = useState(0.78);
 
   if (!overlay) {
@@ -64,13 +68,22 @@ export function RiskMap({ overlay, classes, dark, fallbackImage }) {
               url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
             />
           </LayersControl.BaseLayer>
-          <LayersControl.Overlay checked name="Risk sınıfı">
+          <LayersControl.Overlay checked name="AHP risk sınıfı">
             <ImageOverlay
               url={overlay.url}
               bounds={overlay.bounds}
               opacity={opacity}
             />
           </LayersControl.Overlay>
+          {overlayRf && (
+            <LayersControl.Overlay name="Random Forest tahmini">
+              <ImageOverlay
+                url={overlayRf.url}
+                bounds={overlayRf.bounds}
+                opacity={opacity}
+              />
+            </LayersControl.Overlay>
+          )}
         </LayersControl>
       </MapContainer>
 
@@ -93,6 +106,13 @@ export function RiskMap({ overlay, classes, dark, fallbackImage }) {
             <span className="map__legend-label">Maskeli (yerleşim / su)</span>
           </li>
         </ul>
+
+        {overlayRf && (
+          <p className="note map__layer-hint">
+            Sağ üstteki katman denetiminden <strong>Random Forest tahmini</strong>
+            {" "}açılabilir — aynı palet, aynı sınıf sayısı, farklı model.
+          </p>
+        )}
 
         <label className="map__opacity">
           <span>Katman opaklığı</span>

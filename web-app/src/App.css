@@ -733,6 +733,11 @@ code {
   padding-top: 6px;
   border-top: 1px solid var(--border);
 }
+.map__layer-hint {
+  margin: 4px 0 10px;
+  line-height: 1.45;
+}
+
 .map__opacity {
   display: flex;
   flex-direction: column;

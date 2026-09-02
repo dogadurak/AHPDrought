@@ -297,6 +297,11 @@ export default function App() {
                 ? { ...d.map_overlay, url: `${base}${d.map_overlay.url}` }
                 : null
             }
+            overlayRf={
+              d.map_overlay_rf
+                ? { ...d.map_overlay_rf, url: `${base}${d.map_overlay_rf.url}` }
+                : null
+            }
             classes={cls.classes}
             dark={dark}
             fallbackImage={`${base}figures/risk_map_steep_riskier.png`}
@@ -365,6 +370,35 @@ export default function App() {
               dışında.
             </p>
           </Disclosure>
+
+          {d.map_overlay_rf && (
+            <Disclosure
+              id="harita-rf"
+              summary="Haritanın yanında ikinci bir model var: Random Forest tahmini"
+              hint="katman denetiminden açılır — neden ikisi de gösteriliyor"
+            >
+              <p>
+                Üstteki katman denetiminden{" "}
+                <strong>Random Forest tahmini</strong> açılabilir. Bu harita AHP
+                ağırlıklarıyla değil, Adım 14'te eğitilen modelin öngördüğü NDVI
+                anomalisinden üretilir; aynı paleti ve aynı beş sınıfı kullanır.
+              </p>
+              <p>
+                İkisi aynı şeyi ölçmüyor: AHP haritası{" "}
+                <em>fiziksel duyarlılık nerede yüksek</em> sorusunu, RF haritası{" "}
+                <em>gözlenen stres nerede yüksek çıkıyor</em> sorusunu
+                yanıtlıyor. Birbirini tutmamaları bu projenin bulgusu — fiziksel
+                değişkenler gözlenen stresin yalnızca küçük bir kısmını
+                açıklıyor (R² = 0,133, mekânsal blok çapraz doğrulama).
+              </p>
+              <p>
+                RF haritası bir süre AHP haritasının dosyalarının üstüne
+                yazıyordu ve sayfa onu AHP haritası sanarak gösteriyordu. Çıktı
+                adları artık ayrı; ikisi yan yana, hangisinin hangisi olduğu
+                yazılı duruyor.
+              </p>
+            </Disclosure>
+          )}
 
           <Disclosure
             id="harita-duyarlilik"
@@ -554,6 +588,10 @@ export default function App() {
                 <strong>+0,045</strong>)
               </li>
               <li>
+                Üçüncü ölçü — Landsat yüzey sıcaklığı, enerji dengesi yolu — yine
+                aynı (ρ = <strong>+0,044</strong>)
+              </li>
+              <li>
                 “Düşük değişkenlikli kriterler bozuyor” hipotezi kuruldu ve{" "}
                 <strong>reddedildi</strong> (ρ −0,023 → +0,013)
               </li>
@@ -607,8 +645,9 @@ export default function App() {
                 öngörmeyebilir.
               </li>
               <li>
-                <strong>Sonuç ölçü seçimine bağlı değil.</strong> İki bağımsız
-                etki ölçüsü, iki sensör, iki dönem — aynı cevap.
+                <strong>Sonuç ölçü seçimine bağlı değil.</strong> Üç bağımsız
+                etki ölçüsü — yeşillik, su kısıtı, yüzey sıcaklığı — üç farklı
+                fiziksel yol, aynı cevap.
               </li>
               <li>
                 <strong>Sonuç kriter seçimine de bağlı değil.</strong> Neredeyse

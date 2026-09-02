@@ -226,7 +226,7 @@ def raster_class_stats(scenario: str) -> dict[str, Any] | None:
 
 
 def build_map_overlay(
-    scenario: str, palette: list[str], out_png: Path
+    scenario: str, palette: list[str], out_png: Path, *, prefix: str = "risk_class"
 ) -> dict[str, Any] | None:
     """Risk sınıfı raster'ından web haritası için kaplama PNG'si üretir.
 
@@ -246,7 +246,7 @@ def build_map_overlay(
     import rasterio
     from rasterio.warp import Resampling, calculate_default_transform, reproject
 
-    src_path = PROCESSED / f"risk_class_{scenario}.tif"
+    src_path = PROCESSED / f"{prefix}_{scenario}.tif"
     if not src_path.exists():
         return None
 
@@ -426,6 +426,13 @@ def main() -> int:
     summary["map_overlay"] = build_map_overlay(
         scenario, palette, WEB_DIR / f"risk_overlay_{scenario}.png"
     )
+    # Adım 16'nın Random Forest haritası — AHP'nin YERİNE değil, yanında.
+    # Aynı palet ve aynı yeniden projeksiyon; iki katman üst üste bindirilebilsin
+    # diye tek fark kaynak raster. Üretilmemişse arayüz katmanı hiç göstermez.
+    summary["map_overlay_rf"] = build_map_overlay(
+        scenario, palette, WEB_DIR / f"risk_overlay_rf_{scenario}.png",
+        prefix="risk_class_rf",
+    )
 
     WEB_DIR.mkdir(parents=True, exist_ok=True)
     WEB_DATA.write_text(
@@ -441,6 +448,8 @@ def main() -> int:
     print(f"  operasyonel yıl  : {len(summary['operational_years'])}")
     ov = summary["map_overlay"]
     print(f"  harita kaplaması : {ov['width']}x{ov['height']} px" if ov else "  harita kaplaması : yok (raster yerelde bulunamadı)")
+    rf = summary["map_overlay_rf"]
+    print(f"  RF kaplaması     : {rf['width']}x{rf['height']} px" if rf else "  RF kaplaması     : yok (Adım 16 çalışmamış)")
     return 0
 
 
