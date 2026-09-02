@@ -290,6 +290,7 @@ data_sources:
 criteria:
   precipitation:
     label: "Kurak dönem toplam yağışı"
+    source: "precipitation"           # -> data_sources.precipitation
     unit: "mm"
     higher_is_riskier: false       # az yağış = yüksek risk
     normalization: "minmax_percentile"
@@ -297,6 +298,7 @@ criteria:
 
   ndvi_dry:
     label: "Kurak dönem NDVI (medyan kompozit)"
+    source: "sentinel2"           # -> data_sources.sentinel2
     unit: "-"
     higher_is_riskier: false       # düşük NDVI = stresli/seyrek örtü = yüksek risk
     normalization: "minmax_percentile"
@@ -304,6 +306,7 @@ criteria:
 
   lst:
     label: "Kurak dönem gündüz yüzey sıcaklığı"
+    source: "lst"           # -> data_sources.lst
     unit: "°C"
     higher_is_riskier: true        # yüksek LST = yüksek evapotranspirasyon talebi
     normalization: "minmax_percentile"
@@ -311,12 +314,14 @@ criteria:
 
   landcover:
     label: "Arazi örtüsü kuraklık duyarlılığı"
+    source: "landcover"           # -> data_sources.landcover
     unit: "skor (0-1)"
     higher_is_riskier: true        # lookup tablosu doğrudan risk skoru verir
     normalization: "lookup"        # kategorik -> skor, ayrıca normalize edilmez
 
   irrigation_access:
     label: "Sulama altyapısına mesafe"
+    source: "irrigation"           # -> data_sources.irrigation
     unit: "m"
     higher_is_riskier: true        # şebekeden uzak = kuraklıkta telafi imkânı yok
     # NEDEN LOG + YÜZDELİK, sabit tavan değil:
@@ -336,6 +341,7 @@ criteria:
 
   soil_awc:
     label: "Toprak yarayışlı su kapasitesi (0-30 cm)"
+    source: "soil"           # -> data_sources.soil
     unit: "cm3/cm3"
     higher_is_riskier: false       # düşük su tutma = yüksek risk
     normalization: "minmax_percentile"
@@ -343,6 +349,7 @@ criteria:
 
   distance_to_water:
     label: "En yakın doğal yüzey suyuna Öklid mesafesi"
+    source: "water"           # -> data_sources.water
     unit: "m"
     higher_is_riskier: true        # uzaklık arttıkça doğal nem ve taban suyu azalır
     normalization: "minmax_capped"
@@ -350,6 +357,7 @@ criteria:
 
   slope:
     label: "Eğim"
+    source: "dem"           # -> data_sources.dem
     unit: "derece"
     # Varsayılan senaryo aşağıdaki `scenarios` bölümünden gelir; buradaki değer
     # yalnızca senaryo tanımlanmadığında geçerlidir.
@@ -359,6 +367,7 @@ criteria:
 
   aspect:
     label: "Bakı (güneyliliğe dönüştürülmüş)"
+    source: "dem"           # -> data_sources.dem
     unit: "southness (0-1)"
     # Bakı 0-360 derece DAİRESEL bir değişkendir; doğrudan min-max normalize
     # edilemez (359° ile 1° komşudur ama uçlara düşer). Bu yüzden Adım 3'te

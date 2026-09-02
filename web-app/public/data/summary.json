@@ -1,0 +1,368 @@
+{
+  "generated": "2026-09-02",
+  "scenario": "steep_riskier",
+  "project": {
+    "name": "AHP Tabanlı Tarımsal Kuraklık Risk Haritalama — Gediz Havzası",
+    "version": "0.1.0",
+    "aoi_name": "Gediz Havzası — Salihli / Alaşehir / Sarıgöl alt havzası"
+  },
+  "grid": {
+    "crs": "EPSG:32635",
+    "resolution_m": 30.0,
+    "bbox_wgs84": [
+      27.6,
+      38.2,
+      28.6,
+      38.7
+    ],
+    "leaflet_bounds": [
+      [
+        38.2,
+        27.6
+      ],
+      [
+        38.7,
+        28.6
+      ]
+    ]
+  },
+  "ahp": {
+    "n_criteria": 9,
+    "lambda_max": 9.1073,
+    "consistency_index": 0.0134,
+    "consistency_ratio": 0.0093,
+    "cr_threshold": 0.1,
+    "criteria": [
+      {
+        "key": "precipitation",
+        "label": "Kurak dönem toplam yağışı",
+        "unit": "mm",
+        "weight": 0.2135,
+        "effective_pct": 24.3,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": false,
+        "source": {
+          "key": "precipitation",
+          "provider": "chirps",
+          "collection": null
+        }
+      },
+      {
+        "key": "irrigation_access",
+        "label": "Sulama altyapısına mesafe",
+        "unit": "m",
+        "weight": 0.1782,
+        "effective_pct": 16.1,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": true,
+        "source": {
+          "key": "irrigation",
+          "provider": "osm",
+          "collection": null
+        }
+      },
+      {
+        "key": "ndvi_dry",
+        "label": "Kurak dönem NDVI (medyan kompozit)",
+        "unit": "-",
+        "weight": 0.1585,
+        "effective_pct": 16.5,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": false,
+        "source": {
+          "key": "sentinel2",
+          "provider": "planetary_computer",
+          "collection": "sentinel-2-l2a"
+        }
+      },
+      {
+        "key": "soil_awc",
+        "label": "Toprak yarayışlı su kapasitesi (0-30 cm)",
+        "unit": "cm3/cm3",
+        "weight": 0.1336,
+        "effective_pct": 12.2,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": false,
+        "source": {
+          "key": "soil",
+          "provider": "soilgrids",
+          "collection": null
+        }
+      },
+      {
+        "key": "lst",
+        "label": "Kurak dönem gündüz yüzey sıcaklığı",
+        "unit": "°C",
+        "weight": 0.1117,
+        "effective_pct": 11.5,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": true,
+        "source": {
+          "key": "lst",
+          "provider": "planetary_computer",
+          "collection": "modis-11A2-061"
+        }
+      },
+      {
+        "key": "landcover",
+        "label": "Arazi örtüsü kuraklık duyarlılığı",
+        "unit": "skor (0-1)",
+        "weight": 0.0843,
+        "effective_pct": 9.0,
+        "used_range": [
+          0.1,
+          1.0
+        ],
+        "higher_is_riskier": true,
+        "source": {
+          "key": "landcover",
+          "provider": "planetary_computer",
+          "collection": "esa-worldcover"
+        }
+      },
+      {
+        "key": "distance_to_water",
+        "label": "En yakın doğal yüzey suyuna Öklid mesafesi",
+        "unit": "m",
+        "weight": 0.0523,
+        "effective_pct": 2.6,
+        "used_range": [
+          0.0,
+          0.74
+        ],
+        "higher_is_riskier": true,
+        "source": {
+          "key": "water",
+          "provider": "osm",
+          "collection": null
+        }
+      },
+      {
+        "key": "slope",
+        "label": "Eğim",
+        "unit": "derece",
+        "weight": 0.0425,
+        "effective_pct": 4.6,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": true,
+        "source": {
+          "key": "dem",
+          "provider": "planetary_computer",
+          "collection": "cop-dem-glo-30"
+        }
+      },
+      {
+        "key": "aspect",
+        "label": "Bakı (güneyliliğe dönüştürülmüş)",
+        "unit": "southness (0-1)",
+        "weight": 0.0254,
+        "effective_pct": 3.1,
+        "used_range": [
+          0.0,
+          1.0
+        ],
+        "higher_is_riskier": true,
+        "source": {
+          "key": "dem",
+          "provider": "planetary_computer",
+          "collection": "cop-dem-glo-30"
+        }
+      }
+    ]
+  },
+  "classification": {
+    "method": "jenks",
+    "n_classes": 5,
+    "classes": [
+      {
+        "class": 1,
+        "label": "Çok düşük",
+        "upper_bound": 0.3136,
+        "pixels": 763944,
+        "share_pct": 14.8,
+        "area_km2": 687.5,
+        "color": "#e89286",
+        "color_dark": "#fadcd5"
+      },
+      {
+        "class": 2,
+        "label": "Düşük",
+        "upper_bound": 0.3785,
+        "pixels": 1331994,
+        "share_pct": 25.9,
+        "area_km2": 1198.8,
+        "color": "#dd6a5c",
+        "color_dark": "#f2ac9f"
+      },
+      {
+        "class": 3,
+        "label": "Orta",
+        "upper_bound": 0.4416,
+        "pixels": 1474636,
+        "share_pct": 28.6,
+        "area_km2": 1327.2,
+        "color": "#cc4234",
+        "color_dark": "#e37b68"
+      },
+      {
+        "class": 4,
+        "label": "Yüksek",
+        "upper_bound": 0.5168,
+        "pixels": 1102676,
+        "share_pct": 21.4,
+        "area_km2": 992.4,
+        "color": "#a12c24",
+        "color_dark": "#c25243"
+      },
+      {
+        "class": 5,
+        "label": "Çok yüksek",
+        "upper_bound": 0.7211,
+        "pixels": 476714,
+        "share_pct": 9.3,
+        "area_km2": 429.0,
+        "color": "#6b1c15",
+        "color_dark": "#8a3931"
+      }
+    ],
+    "total_area_km2": 4634.9,
+    "masked": {
+      "pixels": 376856,
+      "area_km2": 339.2
+    },
+    "source": "raster",
+    "source_raster": "data/processed/risk_class_steep_riskier.tif",
+    "report_is_stale": false
+  },
+  "irrigation_effect": [
+    {
+      "year": 2024,
+      "condition": "kurak",
+      "dry": true,
+      "near_canal": -0.0043,
+      "far_from_canal": -0.0428
+    },
+    {
+      "year": 2025,
+      "condition": "kurak",
+      "dry": true,
+      "near_canal": -0.0151,
+      "far_from_canal": -0.0315
+    },
+    {
+      "year": 2023,
+      "condition": "yağışlı",
+      "dry": false,
+      "near_canal": 0.0146,
+      "far_from_canal": 0.0177
+    }
+  ],
+  "operational_years": [
+    {
+      "year": 2017,
+      "spi": -0.73,
+      "dry": true,
+      "mean_anomaly": 0.009,
+      "risk_anomaly_rho": -0.0492,
+      "monotonic": false
+    },
+    {
+      "year": 2018,
+      "spi": -0.75,
+      "dry": true,
+      "mean_anomaly": -0.005,
+      "risk_anomaly_rho": 0.0096,
+      "monotonic": false
+    },
+    {
+      "year": 2019,
+      "spi": -1.54,
+      "dry": true,
+      "mean_anomaly": 0.009,
+      "risk_anomaly_rho": -0.0079,
+      "monotonic": false
+    },
+    {
+      "year": 2020,
+      "spi": -0.31,
+      "dry": false,
+      "mean_anomaly": 0.009,
+      "risk_anomaly_rho": -0.0415,
+      "monotonic": false
+    },
+    {
+      "year": 2021,
+      "spi": 0.25,
+      "dry": false,
+      "mean_anomaly": -0.006,
+      "risk_anomaly_rho": -0.1103,
+      "monotonic": false
+    },
+    {
+      "year": 2022,
+      "spi": -0.72,
+      "dry": true,
+      "mean_anomaly": 0.005,
+      "risk_anomaly_rho": -0.004,
+      "monotonic": false
+    },
+    {
+      "year": 2023,
+      "spi": 0.43,
+      "dry": false,
+      "mean_anomaly": 0.016,
+      "risk_anomaly_rho": 0.0146,
+      "monotonic": false
+    },
+    {
+      "year": 2024,
+      "spi": -1.42,
+      "dry": true,
+      "mean_anomaly": -0.016,
+      "risk_anomaly_rho": -0.165,
+      "monotonic": true
+    },
+    {
+      "year": 2025,
+      "spi": -1.46,
+      "dry": true,
+      "mean_anomaly": -0.02,
+      "risk_anomaly_rho": -0.1168,
+      "monotonic": true
+    }
+  ],
+  "map_overlay": {
+    "url": "data/risk_overlay_steep_riskier.png",
+    "bounds": [
+      [
+        38.19042530972217,
+        27.595600024686135
+      ],
+      [
+        38.70958110222286,
+        28.61128339955361
+      ]
+    ],
+    "width": 3142,
+    "height": 1606,
+    "source_raster": "data/processed/risk_class_steep_riskier.tif"
+  }
+}

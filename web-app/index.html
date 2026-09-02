@@ -1,13 +1,57 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>web-app</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <title>Gediz Havzası Tarımsal Kuraklık Riski — AHP Risk Haritası</title>
+    <meta
+      name="description"
+      content="Gediz Havzası için AHP ile üretilen 30 m çözünürlüklü tarımsal kuraklık risk haritası, duyarlılık analizi ve haritanın 1985–2025 uydu arşiviyle bağımsız sınanması."
+    />
+    <meta name="author" content="Doğa Durak" />
+    <meta name="color-scheme" content="light dark" />
+
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Gediz Havzası Tarımsal Kuraklık Riski"
+    />
+    <meta
+      property="og:description"
+      content="9 kriterli AHP risk haritası ve bağımsız uydu verisiyle doğrulaması — olumsuz sonuç dahil."
+    />
+    <meta
+      property="og:url"
+      content="https://dogadurak.github.io/AHPDr/"
+    />
+    <!-- Mutlak URL zorunlu: paylaşım kartlarını çeken botlar göreli yolu
+         çözemez. Görsel 1944x1122 (~1.73:1), kartın istediği orana yakın. -->
+    <meta
+      property="og:image"
+      content="https://dogadurak.github.io/AHPDr/figures/risk_map_steep_riskier.png"
+    />
+    <meta
+      property="og:image:alt"
+      content="Gediz Havzası tarımsal kuraklık riski haritası, beş sınıflı."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      Bu sayfa etkileşimli bir harita ve grafikler içerir; görüntülemek için
+      JavaScript gerekir. Tüm bulgular ayrıca projenin README dosyasında
+      yazılıdır.
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
