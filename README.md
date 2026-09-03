@@ -29,10 +29,10 @@ gerektirmeyen açık veri · iki arayüz, tek veri dosyası.
 
 ![Kuraklık risk haritası](outputs/figures/risk_map_steep_riskier.png)
 
-> **🌐 Etkileşimli vitrin:** <https://dogadurak.github.io/AHPDrought/> — harita,
-> AHP ağırlıkları, sulama etkisi ve doğrulamanın olumsuz sonucu.
-> *(GitHub Pages'i Settings → Pages → Source: GitHub Actions ile bir kez açmak
-> gerekiyor.)*
+> ### 🌐 [Etkileşimli vitrini aç → dogadurak.github.io/AHPDrought](https://dogadurak.github.io/AHPDrought/)
+>
+> Etkileşimli risk haritası (AHP ve Random Forest katmanları), AHP ağırlıkları,
+> sulama etkisi ve doğrulamanın olumsuz sonucu — hepsi tek sayfada.
 >
 > **📊 Statik görsel özet:** bütün bulgular tek sayfada —
 > [claude.ai/code/artifact/169dfe78-f7a6-400b-bc4d-b4101939202a](https://claude.ai/code/artifact/169dfe78-f7a6-400b-bc4d-b4101939202a)
