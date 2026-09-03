@@ -515,21 +515,13 @@ daha başarılı olduğunu buluyor. Bu havza için sınandı:
 
 | | NDVI | EVI |
 |---|---:|---:|
-| Bağımsız ET/PET ile ρ (ham katman) | **+0,647** | +0,618 |
-| Bağımsız ET/PET ile ρ (risk haritası) | **−0,331** | −0,283 |
+| Bağımsız ET/PET ile ρ (ham katman) | **+0,648** | +0,621 |
+| Bağımsız ET/PET ile ρ (risk haritası) | **−0,283** | −0,238 |
 
-> Bu tablonun iki sütunu da **aynı, daha eski çalıştırmadan** gelir
-> ([`vegetation_index_comparison.md`](outputs/reports/vegetation_index_comparison.md)).
-> Karşılaştırmayı güncel risk indeksiyle tekrarlamak `evi_dry.tif` kompozitinin
-> üretilmesini, o da Sentinel-2'nin mavi bandıyla yeniden indirilmesini
-> gerektiriyor (`step02_fetch_data`, ~1,5 sa) — bu yüzden tazelenmedi. İki
-> sütun kendi içinde tutarlı olduğu için **karşılaştırmanın sonucu geçerli**;
-> mutlak değerler bugünkü haritanınkiyle birebir aynı değil.
-
-İki indeks ρ = 0,956 korelasyonlu; risk haritaları %87,2 aynı sınıfta, %100'ü
+İki indeks ρ = 0,956 korelasyonlu; risk haritaları %88,3 aynı sınıfta, %100'ü
 en fazla 1 sınıf kayıyor. **Bu havzada indeks seçimi belirleyici değil ve
 NDVI biraz daha uyumlu** — literatürdeki genel bulgu burada geçerli çıkmadı.
-`vegetation_index: ndvi | evi` ile değiştirilebilir.
+`vegetation_index: ndvi | evi` ile değiştirilebilir; EVI kompozitini üretmek için `python -m scripts.step02_fetch_data --only ndvi-dry --vegetation-index evi`.
 
 ## Yöntem notları
 

@@ -61,6 +61,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--overwrite", action="store_true", help="Önbelleği yok say")
     parser.add_argument("--years", nargs="+", type=int, default=None, help="Referans yıllarını değiştir")
     parser.add_argument("--list", action="store_true", help="Katmanları listele ve çık")
+    parser.add_argument(
+        "--vegetation-index",
+        choices=("ndvi", "evi"),
+        default=None,
+        help="Sentinel-2 bitki örtüsü indeksini geçersiz kıl (karşılaştırma için)",
+    )
     args = parser.parse_args(argv)
 
     if args.list:
@@ -76,6 +82,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.years:
         config.raw["periods"]["reference_years"] = args.years
         print(f"Referans yılları geçersiz kılındı: {args.years}")
+
+    # NDVI/EVI karşılaştırması iki kompoziti de ister. Config'i elle
+    # değiştirmek yerine burada geçersiz kılınıyor, böylece komut kayda geçer
+    # ve tekrar üretilebilir olur.
+    if args.vegetation_index:
+        config.raw["data_sources"]["sentinel2"]["vegetation_index"] = args.vegetation_index
+        print(f"Bitki örtüsü indeksi geçersiz kılındı: {args.vegetation_index}")
 
     grid = build_grid(config)
 

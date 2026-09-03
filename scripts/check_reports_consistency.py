@@ -71,6 +71,8 @@ CHECKS = (
           r"\| Alt küme \| \d+ \| \*\*([+-]\d+\.\d+)\*\*"),
     Check("Tarihsel ayrışma eğimi", "historical_decoupling.md",
           r"eğim \*\*([+-]\d+\.\d+)/yıl\*\*"),
+    Check("NDVI risk haritasının ET/PET uyumu", "vegetation_index_comparison.md",
+          r"NDVI\s+ham katman.*?risk haritası .? = (-?\d+\.\d+)"),
     Check("2001 kuraklığının korelasyonu", "historical_decoupling.md",
           r"\| 2001 \| KURAK \| ([+-]\d+\.\d+) \|"),
 )
