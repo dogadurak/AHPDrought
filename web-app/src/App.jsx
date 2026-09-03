@@ -11,7 +11,7 @@ import { RiskMap } from "./components/RiskMap";
 import { isoDate, km2, num, num1, num2, num4, pct, signed } from "./lib/format";
 import "./App.css";
 
-const REPO = "https://github.com/dogadurak/AHPDr";
+const REPO = "https://github.com/dogadurak/AHPDrought";
 
 const SECTIONS = [
   { id: "harita", label: "Risk haritası" },

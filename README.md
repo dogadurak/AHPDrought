@@ -1,7 +1,7 @@
 # AHP Tabanlı Tarımsal Kuraklık Risk Haritalama — Gediz Havzası
 
-[![tests](https://github.com/dogadurak/AHPDr/actions/workflows/test.yml/badge.svg)](https://github.com/dogadurak/AHPDr/actions/workflows/test.yml)
-[![web](https://github.com/dogadurak/AHPDr/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/dogadurak/AHPDr/actions/workflows/deploy-web.yml)
+[![tests](https://github.com/dogadurak/AHPDrought/actions/workflows/test.yml/badge.svg)](https://github.com/dogadurak/AHPDrought/actions/workflows/test.yml)
+[![web](https://github.com/dogadurak/AHPDrought/actions/workflows/deploy-web.yml/badge.svg)](https://github.com/dogadurak/AHPDrought/actions/workflows/deploy-web.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![python 3.13](https://img.shields.io/badge/python-3.13-blue.svg)](https://www.python.org/)
 
@@ -29,7 +29,7 @@ gerektirmeyen açık veri · iki arayüz, tek veri dosyası.
 
 ![Kuraklık risk haritası](outputs/figures/risk_map_steep_riskier.png)
 
-> **🌐 Etkileşimli vitrin:** <https://dogadurak.github.io/AHPDr/> — harita,
+> **🌐 Etkileşimli vitrin:** <https://dogadurak.github.io/AHPDrought/> — harita,
 > AHP ağırlıkları, sulama etkisi ve doğrulamanın olumsuz sonucu.
 > *(GitHub Pages'i Settings → Pages → Source: GitHub Actions ile bir kez açmak
 > gerekiyor.)*
